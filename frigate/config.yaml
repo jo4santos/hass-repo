@@ -13,7 +13,4 @@ arch:
 init: false
 map:
   - share:rw
-usb: true
-devices:
-  - /dev/dri/renderD128
 image: "blakeblackshear/frigate:stable"
