@@ -13,8 +13,13 @@ arch:
 init: false
 map:
   - share:rw
-options:
-  message: "Hello world..."
-schema:
-  message: "str?"
-image: "ghcr.io/home-assistant/{arch}-addon-example"
+usb: true
+devices:
+  - /dev/dri/renderD128
+boot: auto
+host_network: true
+full_access: true
+privileged:
+  - NET_ADMIN
+  - SYS_ADMIN
+image: "blakeblackshear/frigate:stable"
