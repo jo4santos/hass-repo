@@ -13,4 +13,4 @@ arch:
 init: false
 map:
   - share:rw
-image: "ghcr.io/home-assistant/{arch}-addon-example"
+image: "ghcr.io/blakeblackshear/frigate:stable"
