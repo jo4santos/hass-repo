@@ -1,0 +1,18 @@
+name: Frigate Full Access
+version: "0.1"
+slug: frigate_full_access
+description: Frigate NVR with VAAPI and Coral support
+startup: application
+boot: auto
+host_network: true
+full_access: true
+privileged:
+  - NET_ADMIN
+  - SYS_ADMIN
+devices:
+  - /dev/dri/renderD128
+usb: true
+arch:
+  - amd64
+schema: {}
+image: blakeblackshear/frigate:stable
