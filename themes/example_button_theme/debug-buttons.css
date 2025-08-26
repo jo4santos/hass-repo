@@ -1,0 +1,60 @@
+/*
+DEBUG CSS - Add this temporarily to see what's happening
+This will make ALL ha-button elements bright pink so we can see if CSS is working at all
+*/
+
+/* Test 1: Make ALL ha-button elements pink to test CSS loading */
+ha-button {
+  background-color: hotpink !important;
+  border: 3px solid purple !important;
+  color: black !important;
+}
+
+/* Test 2: Make ALL elements in dialogs bright colors */
+ha-md-dialog * {
+  border: 1px solid lime !important;
+}
+
+/* Test 3: Target the specific dialog structure */
+home-assistant dialog-box ha-md-dialog div:nth-child(3) {
+  background-color: yellow !important;
+  border: 5px solid red !important;
+}
+
+/* Test 4: Target buttons in the specific location */
+home-assistant dialog-box ha-md-dialog div:nth-child(3) ha-button {
+  background-color: orange !important;
+  border: 5px solid blue !important;
+  color: black !important;
+  font-size: 20px !important;
+}
+
+/* Test 5: Ultra-aggressive selector */
+* ha-button {
+  background-color: cyan !important;
+}
+
+/* Test 6: Check if shadow DOM is blocking */
+::part(button) {
+  background-color: magenta !important;
+}
+
+/* Test 7: Try targeting with universal selectors */
+dialog-box * ha-button,
+ha-md-dialog * ha-button {
+  background-color: lime !important;
+}
+
+/* Log to console when CSS loads */
+body::before {
+  content: "DEBUG CSS LOADED" !important;
+  display: block !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  background: red !important;
+  color: white !important;
+  padding: 10px !important;
+  z-index: 9999 !important;
+  font-size: 16px !important;
+}
