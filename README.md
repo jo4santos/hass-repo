@@ -29,7 +29,7 @@ Custom integrations that can be installed via HACS (Home Assistant Community Sto
 
 ### Available Integrations
 
-- **[Example Counter](https://github.com/jo4santos/hass-repo-integration-counter)** - Simple counter sensor that increments every 30 seconds
+- **[Frigate Person Counter](https://github.com/jo4santos/hass-repo-integration-counter)** - Counts the number of times Frigate identifies a known person
 
 ## HACS Lovelace Cards
 
