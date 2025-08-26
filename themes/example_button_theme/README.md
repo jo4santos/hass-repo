@@ -18,7 +18,16 @@ A minimal Home Assistant theme that focuses only on styling modal confirmation b
 
 ## Installation
 
-### Method 1: Manual Installation
+### Method 1: Via HACS (Recommended)
+
+1. Install HACS if not already installed
+2. Go to HACS → Frontend → ⋮ → Custom repositories  
+3. Add this URL: `https://github.com/jo4santos/hass-repo-theme`
+4. Select category: Theme → Add → Install
+5. Restart Home Assistant
+6. Go to Profile → Theme → Select "Example Button Theme"
+
+### Method 2: Manual Installation
 
 1. Download `example_button_theme.yaml`
 2. Create a `themes` folder in your Home Assistant config directory if it doesn't exist
@@ -33,7 +42,7 @@ frontend:
 5. Restart Home Assistant
 6. Go to Profile → Theme → Select "Example Button Theme"
 
-### Method 2: Via File Editor Add-on
+### Method 3: Via File Editor Add-on
 
 1. Install the File Editor add-on if not already installed
 2. Navigate to `/config/themes/`

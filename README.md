@@ -67,7 +67,13 @@ Custom themes that enhance specific UI elements without overriding the entire in
 3. Add card URL: `https://github.com/jo4santos/hass-repo-card-counter`
 4. Select category: Lovelace → Add → Install
 
-### Themes
+### HACS Themes
+1. Install HACS if not already installed
+2. Go to HACS → Frontend → ⋮ → Custom repositories
+3. Add theme URL: `https://github.com/jo4santos/hass-repo-theme`
+4. Select category: Theme → Add → Install → Restart HA → Profile → Theme
+
+### Manual Theme Installation
 1. Download the theme YAML file from the desired theme directory
 2. Copy to `/config/themes/` in your Home Assistant installation
 3. Add to `configuration.yaml`: 
