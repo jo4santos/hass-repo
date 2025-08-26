@@ -1,0 +1,8 @@
+{
+  "name": "Frigate Person Counter",
+  "content_in_root": false,
+  "filename": "frigate_person_counter",
+  "render_readme": true,
+  "domains": ["sensor"],
+  "homeassistant": "2023.1.0"
+}
