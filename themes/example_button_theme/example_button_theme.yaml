@@ -1,28 +1,57 @@
 # Example Button Theme
-# A minimal theme that only modifies modal confirmation buttons
-# while inheriting all other styling from the current theme
+# Ultra-minimal theme that ONLY affects confirmation modal buttons
+# Preserves all other UI styling completely
 
 Example Button Theme:
-  # Primary button (OK, Confirm, Save, etc.)
-  mdc-theme-primary: "#4CAF50"                    # Green confirm button
-  primary-color: "#4CAF50"                       # Fallback for older components
+  # Essential: Inherit ALL theme variables to prevent any UI changes
+  # This ensures we don't accidentally override sidebar, cards, etc.
   
-  # Secondary/Cancel button styling  
-  mdc-theme-secondary: "#f44336"                 # Red cancel button
-  accent-color: "#f44336"                        # Fallback for older components
+  # Copy all existing variables exactly as they are
+  primary-color: "var(--primary-color)"
+  accent-color: "var(--accent-color)"
+  dark-primary-color: "var(--dark-primary-color)"
+  light-primary-color: "var(--light-primary-color)"
+  text-primary-color: "var(--text-primary-color)"
+  primary-text-color: "var(--primary-text-color)"
+  secondary-text-color: "var(--secondary-text-color)"
+  disabled-text-color: "var(--disabled-text-color)"
+  label-badge-border-color: "var(--label-badge-border-color)"
+  primary-background-color: "var(--primary-background-color)"
+  secondary-background-color: "var(--secondary-background-color)"
+  divider-color: "var(--divider-color)"
+  table-row-background-color: "var(--table-row-background-color)"
+  table-row-alternative-background-color: "var(--table-row-alternative-background-color)"
+  paper-listbox-color: "var(--paper-listbox-color)"
+  paper-listbox-background-color: "var(--paper-listbox-background-color)"
+  paper-grey-50: "var(--paper-grey-50)"
+  paper-grey-200: "var(--paper-grey-200)"
+  paper-card-background-color: "var(--paper-card-background-color)"
+  paper-card-header-color: "var(--paper-card-header-color)"
+  paper-item-icon-color: "var(--paper-item-icon-color)"
+  paper-item-icon-active-color: "var(--paper-item-icon-active-color)"
+  paper-item-icon_-_color: "var(--paper-item-icon_-_color)"
+  paper-item-selected-_-background-color: "var(--paper-item-selected-_-background-color)"
+  paper-tabs-selection-bar-color: "var(--paper-tabs-selection-bar-color)"
+  sidebar-icon-color: "var(--sidebar-icon-color)"
+  sidebar-text-color: "var(--sidebar-text-color)"
+  sidebar-background-color: "var(--sidebar-background-color)"
+  sidebar-selected-icon-color: "var(--sidebar-selected-icon-color)"
+  sidebar-selected-text-color: "var(--sidebar-selected-text-color)"
+  card-background-color: "var(--card-background-color)"
   
-  # Button text colors
-  text-primary-color: "#ffffff"                  # White text on primary buttons
-  primary-text-color: "#212121"                  # Keep default text color
+  # ONLY modify these very specific variables that affect confirmation dialogs
+  # Research shows these are the most targeted variables for modal buttons
   
-  # Modal dialog colors (subtle changes)
-  card-background-color: "var(--primary-background-color)"  # Inherit from current theme
-  primary-background-color: "var(--primary-background-color)"  # Inherit from current theme
+  # These should only affect actual confirmation modal buttons
+  ha-dialog-ok-button-color: "#4CAF50"
+  ha-dialog-ok-button-text-color: "#ffffff" 
+  ha-dialog-cancel-button-color: "#f44336"
+  ha-dialog-cancel-button-text-color: "#ffffff"
   
-  # Hover states for buttons
-  mdc-theme-primary-hover: "#45a049"             # Darker green on hover
-  mdc-theme-secondary-hover: "#da190b"           # Darker red on hover
-  
-  # Focus states
-  mdc-theme-primary-focus: "#4CAF50"
-  mdc-theme-secondary-focus: "#f44336"
+  # Make buttons bigger - these should only apply to dialog action buttons
+  dialog-button-height: "48px"
+  dialog-button-min-width: "120px"
+  dialog-button-padding: "0 24px"
+  dialog-button-font-size: "16px"
+  dialog-button-font-weight: "600"
+  dialog-button-border-radius: "8px"

@@ -4,17 +4,19 @@ A minimal Home Assistant theme that focuses only on styling modal confirmation b
 
 ## Features
 
-- **Focused Changes**: Only modifies modal dialog buttons (OK/Confirm, Cancel)
-- **Theme Inheritance**: Preserves all other styling from your current theme
+- **Ultra-Targeted**: ONLY modifies card tap_action confirmation modal buttons  
+- **Complete Theme Preservation**: Inherits ALL existing theme variables
 - **Visual Clarity**: Green confirm buttons, red cancel buttons for better UX
-- **Non-Intrusive**: Doesn't override cards, sidebar, or main interface elements
+- **Bigger Buttons**: 48px height, larger padding, occupy more modal space
+- **Zero Side Effects**: Doesn't touch sidebar, cards, or any other UI elements
 
 ## Button Styling
 
-- **Confirm/OK Buttons**: Green (`#4CAF50`) with white text
-- **Cancel/Close Buttons**: Red (`#f44336`) with appropriate contrast
-- **Hover Effects**: Darker shades on hover for better feedback
-- **Focus States**: Proper accessibility focus indicators
+- **Confirm/OK Buttons**: Green (`#4CAF50`) with white text, 48px height
+- **Cancel/Close Buttons**: Red (`#f44336`) with white text, 48px height  
+- **Enhanced Size**: Bigger buttons with more padding for easier interaction
+- **Better Layout**: Buttons take up approximately half the modal width each
+- **Card Actions Only**: Specifically targets `tap_action: confirmation:` modals
 
 ## Installation
 
@@ -67,11 +69,30 @@ Or if you already have themes configured, just restart Home Assistant.
 2. **Test**: Open any modal dialog (delete entity, restart HA, etc.)
 3. **Observe**: Confirm buttons will be green, cancel buttons red
 
+## Target Usage
+
+This theme is specifically designed for card configurations like:
+
+```yaml
+type: entity
+entity: light.living_room
+tap_action:
+  action: toggle
+  confirmation:
+    text: "Are you sure you want to toggle the light?"
+```
+
+The confirmation modal that appears will have:
+- ✅ **Green "YES" button** (48px height, enhanced padding)
+- ❌ **Red "NO" button** (48px height, enhanced padding)  
+- 📏 **Bigger layout** - buttons occupy ~50% modal width each
+
 ## Compatibility
 
-- **Home Assistant Core**: 2023.1+
+- **Home Assistant Core**: 2023.1+  
 - **All Themes**: Works as an overlay on any existing theme
-- **Components**: Compatible with all modal dialogs, confirmations, forms
+- **Target**: Card `tap_action` confirmation modals specifically
+- **Zero Conflicts**: Preserves all other UI styling completely
 
 ## Customization
 
