@@ -37,7 +37,7 @@ A simple custom Lovelace card that displays counter values with clean, modern st
 
 ```yaml
 type: custom:example-counter-card
-entity: sensor.example_counter
+entity: sensor.frigate_person_count
 ```
 
 **Note**: This card works great with the Example Counter integration. Install it first via HACS:
@@ -46,18 +46,18 @@ entity: sensor.example_counter
 2. Configure in `configuration.yaml`:
 
 ```yaml
-# configuration.yaml
+# configuration.yaml (domain remains example_counter)
 example_counter:
 
 sensor:
-  - platform: example_counter
+  - platform: example_counter  # Creates sensor.frigate_person_count
 ```
 
 ### Advanced Configuration
 
 ```yaml
 type: custom:example-counter-card
-entity: sensor.example_counter
+entity: sensor.frigate_person_count
 name: "My Custom Counter"
 ```
 

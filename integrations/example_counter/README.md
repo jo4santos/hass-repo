@@ -25,11 +25,13 @@ A Home Assistant custom integration that counts the number of times Frigate iden
 
 ### Manual Installation
 
-1. Download the `custom_components/example_counter` folder
+1. Download the `custom_components/example_counter` folder (domain name)
 2. Copy it to your Home Assistant `custom_components` directory
 3. Restart Home Assistant
 
 ## Configuration
+
+**Note**: The integration domain remains `example_counter` for HACS compatibility, but the sensor will appear as "Frigate Person Count" in Home Assistant.
 
 Add to your `configuration.yaml`:
 
@@ -37,9 +39,9 @@ Add to your `configuration.yaml`:
 # Add the integration
 example_counter:
 
-# Add the sensor
+# Add the sensor (platform name must match domain)
 sensor:
-  - platform: example_counter
+  - platform: example_counter  # Platform name matches the domain
 ```
 
 ## Entities Created

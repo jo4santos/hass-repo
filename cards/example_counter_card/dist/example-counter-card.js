@@ -78,7 +78,7 @@ class ExampleCounterCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { entity: 'sensor.example_counter' };
+    return { entity: 'sensor.frigate_person_count' };
   }
 }
 
