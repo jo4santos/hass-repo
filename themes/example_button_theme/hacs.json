@@ -1,0 +1,6 @@
+{
+  "name": "Example Button Theme",
+  "filename": "example_button_theme.yaml",
+  "render_readme": true,
+  "homeassistant": "2023.1.0"
+}
