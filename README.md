@@ -8,7 +8,6 @@ This repository contains custom Home Assistant add-ons, integrations, and Lovela
 ├── example/          # Home Assistant Add-ons (root level)
 ├── integrations/     # HACS Custom Integrations  
 ├── cards/           # HACS Lovelace Cards
-├── themes/          # Home Assistant Themes
 └── repository.yaml   # Add-on repository configuration
 ```
 
@@ -30,7 +29,7 @@ Custom integrations that can be installed via HACS (Home Assistant Community Sto
 
 ### Available Integrations
 
-- [Example Counter](./integrations/example_counter) - Simple counter sensor that increments every 30 seconds
+- **[Example Counter](https://github.com/jo4santos/hass-repo-integration-counter)** - Simple counter sensor that increments every 30 seconds
 
 ## HACS Lovelace Cards
 
@@ -38,16 +37,8 @@ Custom dashboard cards that can be installed via HACS.
 
 ### Available Cards
 
-- [Example Counter Card](./cards/example_counter_card) - Stylish card to display counter values
-- [Toggle Confirmation Card](./cards/toggle_confirmation_card) - Card that transforms into red/green confirmation buttons
-
-## Home Assistant Themes
-
-Custom themes that enhance specific UI elements without overriding the entire interface.
-
-### Available Themes
-
-- [Example Button Theme](./themes/example_button_theme) - Modifies only modal confirmation buttons for better UX
+- **[Example Counter Card](https://github.com/jo4santos/hass-repo-card-counter)** - Stylish card to display counter values
+- **[Toggle Confirmation Card](https://github.com/jo4santos/hass-repo-toggle-card)** - Card that transforms into red/green confirmation buttons
 
 ## Installation Instructions
 
@@ -66,25 +57,9 @@ Custom themes that enhance specific UI elements without overriding the entire in
 1. Install HACS if not already installed  
 2. Go to HACS → Frontend → ⋮ → Custom repositories
 3. Add card URLs:
-   - Counter Card: `https://github.com/jo4santos/hass-repo-card-counter`
-   - Toggle Card: `https://github.com/jo4santos/hass-repo-toggle-card`
+   - **Counter Card**: `https://github.com/jo4santos/hass-repo-card-counter`
+   - **Toggle Card**: `https://github.com/jo4santos/hass-repo-toggle-card`
 4. Select category: Lovelace → Add → Install
-
-### HACS Themes
-1. Install HACS if not already installed
-2. Go to HACS → Frontend → ⋮ → Custom repositories
-3. Add theme URL: `https://github.com/jo4santos/hass-repo-theme`
-4. Select category: Theme → Add → Install → Restart HA → Profile → Theme
-
-### Manual Theme Installation
-1. Download the theme YAML file from the desired theme directory
-2. Copy to `/config/themes/` in your Home Assistant installation
-3. Add to `configuration.yaml`: 
-   ```yaml
-   frontend:
-     themes: !include_dir_merge_named themes
-   ```
-4. Restart Home Assistant → Profile → Theme → Select theme
 
 ## Development
 
