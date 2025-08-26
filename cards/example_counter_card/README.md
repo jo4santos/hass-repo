@@ -1,6 +1,6 @@
 # Example Counter Card
 
-A simple custom Lovelace card that displays counter values with nice styling for demonstration purposes.
+A simple custom Lovelace card that displays counter values with clean, modern styling. Perfect for showcasing the Example Counter integration or any numeric sensor.
 
 ## Features
 
@@ -40,7 +40,10 @@ type: custom:example-counter-card
 entity: sensor.example_counter
 ```
 
-**Note**: Make sure you have the Example Counter integration installed and configured first:
+**Note**: This card works great with the Example Counter integration. Install it first via HACS:
+
+1. Add the Example Counter integration repository: `https://github.com/jo4santos/hass-repo-integration-counter`
+2. Configure in `configuration.yaml`:
 
 ```yaml
 # configuration.yaml
@@ -68,11 +71,12 @@ name: "My Custom Counter"
 ## Example Usage
 
 Perfect for displaying:
-- Counter sensors
-- Step counters
-- Event counters
-- Statistics
+- Example Counter integration sensor
+- Counter sensors from other integrations
+- Step counters and fitness trackers
+- Event counters and statistics
 - Any numeric sensor with incremental values
+- Utility meters and consumption tracking
 
 ## Visual Editor
 
@@ -94,4 +98,4 @@ The card automatically adapts to your Home Assistant theme and supports:
 
 ## Support
 
-This is an example card for demonstration purposes. For issues or feature requests, visit the [repository](https://github.com/jo4santos/hass-repo).
+This card is designed to showcase the Example Counter integration and provides a clean way to display numeric sensors. For issues or feature requests, visit the [repository](https://github.com/jo4santos/hass-repo).
