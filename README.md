@@ -29,7 +29,7 @@ Custom integrations that can be installed via HACS (Home Assistant Community Sto
 
 ### Available Integrations
 
-- **[Frigate Person Counter](https://github.com/jo4santos/hass-repo-integration-counter)** - Counts the number of times Frigate identifies a known person
+- **[Frigate Person Counter](https://github.com/jo4santos/hass-repo-integration-counter)** - Event-driven integration that counts Frigate person detections
 
 ## HACS Lovelace Cards
 
