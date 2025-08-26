@@ -1,0 +1,10 @@
+{
+  "domain": "frigate_person_counter",
+  "name": "Frigate Person Counter",
+  "codeowners": ["@jo4santos"],
+  "config_flow": false,
+  "documentation": "https://github.com/jo4santos/hass-repo-integration-counter",
+  "integration_type": "entity",
+  "iot_class": "local_polling",
+  "version": "3.0.0"
+}
