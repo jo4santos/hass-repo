@@ -18,31 +18,26 @@ A minimal Home Assistant theme that focuses only on styling modal confirmation b
 - **Better Layout**: Buttons take up approximately half the modal width each
 - **Card Actions Only**: Specifically targets `tap_action: confirmation:` modals
 
-## Prerequisites
-
-**IMPORTANT**: This theme requires the **card-mod** integration to inject CSS for targeting specific modal buttons.
-
-### Install card-mod first:
-1. **HACS** → **Frontend** → Search "**card-mod**" → **Install**
-2. **Restart Home Assistant**
-
 ## Installation
 
 ### Method 1: Via HACS (Recommended)
 
-1. **Ensure card-mod is installed** (see Prerequisites above)
-2. Install HACS if not already installed
-3. Go to HACS → Frontend → ⋮ → Custom repositories  
-4. Add this URL: `https://github.com/jo4santos/hass-repo-theme`
-5. Select category: Theme → Add → Install
-6. Restart Home Assistant
-7. Go to Profile → Theme → Select "Example Button Theme"
+1. Install HACS if not already installed
+2. Go to HACS → Frontend → ⋮ → Custom repositories  
+3. Add this URL: `https://github.com/jo4santos/hass-repo-theme`
+4. Select category: Theme → Add → Install
+5. **Download the CSS file**: Save `button-modal-styling.css` to `/config/www/`
+6. **Add CSS resource**: Go to Settings → Dashboards → Resources → Add Resource:
+   - **URL**: `/local/button-modal-styling.css`
+   - **Resource Type**: Stylesheet
+7. Restart Home Assistant
+8. Go to Profile → Theme → Select "Example Button Theme"
 
 ### Method 2: Manual Installation
 
-1. Download `example_button_theme.yaml`
-2. Create a `themes` folder in your Home Assistant config directory if it doesn't exist
-3. Copy the theme file to `/config/themes/example_button_theme.yaml`
+1. Download both `example_button_theme.yaml` and `button-modal-styling.css`
+2. Copy theme file to `/config/themes/example_button_theme.yaml`
+3. Copy CSS file to `/config/www/button-modal-styling.css`
 4. Add to your `configuration.yaml`:
 
 ```yaml
@@ -50,8 +45,11 @@ frontend:
   themes: !include_dir_merge_named themes
 ```
 
-5. Restart Home Assistant
-6. Go to Profile → Theme → Select "Example Button Theme"
+5. **Add CSS resource**: Settings → Dashboards → Resources → Add:
+   - **URL**: `/local/button-modal-styling.css`  
+   - **Resource Type**: Stylesheet
+6. Restart Home Assistant
+7. Go to Profile → Theme → Select "Example Button Theme"
 
 ### Method 3: Via File Editor Add-on
 
