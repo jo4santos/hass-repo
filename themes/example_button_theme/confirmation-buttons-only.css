@@ -1,0 +1,65 @@
+/*
+Confirmation Modal Button Styling - Standalone CSS
+This file targets ONLY confirmation modal buttons, no theme required
+Add this as a Lovelace resource: /local/confirmation-buttons-only.css
+*/
+
+/* Target ONLY confirmation modal buttons - no global changes */
+ha-md-dialog[type="alert"] [slot="actions"] {
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: space-between !important;
+  padding: 16px !important;
+}
+
+/* Base styling for confirmation modal buttons only */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button {
+  min-width: 45% !important;
+  height: 48px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  margin: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Cancel button - Red (first button with appearance="plain") */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="plain"] {
+  background-color: #f44336 !important;
+  color: white !important;
+  border: 2px solid #f44336 !important;
+}
+
+/* Cancel button hover */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="plain"]:hover {
+  background-color: #da190b !important;
+  border-color: #da190b !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3) !important;
+}
+
+/* OK button - Green (second button with appearance="accent") */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="accent"] {
+  background-color: #4CAF50 !important;
+  color: white !important;
+  border: 2px solid #4CAF50 !important;
+}
+
+/* OK button hover */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="accent"]:hover {
+  background-color: #45a049 !important;
+  border-color: #45a049 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* Button active/pressed states */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button:active {
+  transform: translateY(0px) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Ensure text is visible */
+ha-md-dialog[type="alert"] [slot="actions"] ha-button span {
+  color: white !important;
+}
