@@ -18,16 +18,25 @@ A minimal Home Assistant theme that focuses only on styling modal confirmation b
 - **Better Layout**: Buttons take up approximately half the modal width each
 - **Card Actions Only**: Specifically targets `tap_action: confirmation:` modals
 
+## Prerequisites
+
+**IMPORTANT**: This theme requires the **card-mod** integration to inject CSS for targeting specific modal buttons.
+
+### Install card-mod first:
+1. **HACS** → **Frontend** → Search "**card-mod**" → **Install**
+2. **Restart Home Assistant**
+
 ## Installation
 
 ### Method 1: Via HACS (Recommended)
 
-1. Install HACS if not already installed
-2. Go to HACS → Frontend → ⋮ → Custom repositories  
-3. Add this URL: `https://github.com/jo4santos/hass-repo-theme`
-4. Select category: Theme → Add → Install
-5. Restart Home Assistant
-6. Go to Profile → Theme → Select "Example Button Theme"
+1. **Ensure card-mod is installed** (see Prerequisites above)
+2. Install HACS if not already installed
+3. Go to HACS → Frontend → ⋮ → Custom repositories  
+4. Add this URL: `https://github.com/jo4santos/hass-repo-theme`
+5. Select category: Theme → Add → Install
+6. Restart Home Assistant
+7. Go to Profile → Theme → Select "Example Button Theme"
 
 ### Method 2: Manual Installation
 
@@ -82,10 +91,25 @@ tap_action:
     text: "Are you sure you want to toggle the light?"
 ```
 
+### Targeted HTML Structure
+
+The theme targets this specific modal structure:
+```html
+<ha-md-dialog type="alert">
+  <div slot="actions">
+    <ha-button appearance="plain">Cancelar</ha-button>
+    <ha-button appearance="accent">OK</ha-button>
+  </div>
+</ha-md-dialog>
+```
+
+### Results
+
 The confirmation modal that appears will have:
-- ✅ **Green "YES" button** (48px height, enhanced padding)
-- ❌ **Red "NO" button** (48px height, enhanced padding)  
-- 📏 **Bigger layout** - buttons occupy ~50% modal width each
+- ✅ **Green "OK" button** (48px height, enhanced padding)
+- ❌ **Red "Cancel" button** (48px height, enhanced padding)  
+- 📏 **Bigger layout** - buttons occupy ~45% modal width each
+- 🎯 **Perfect targeting** - only affects `ha-md-dialog[type="alert"]` modals
 
 ## Compatibility
 

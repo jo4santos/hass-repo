@@ -1,57 +1,52 @@
 # Example Button Theme
-# Ultra-minimal theme that ONLY affects confirmation modal buttons
-# Preserves all other UI styling completely
+# NOTE: This theme requires card-mod integration for CSS injection
+# Targets only confirmation modal buttons in ha-md-dialog elements
 
 Example Button Theme:
-  # Essential: Inherit ALL theme variables to prevent any UI changes
-  # This ensures we don't accidentally override sidebar, cards, etc.
-  
-  # Copy all existing variables exactly as they are
-  primary-color: "var(--primary-color)"
-  accent-color: "var(--accent-color)"
-  dark-primary-color: "var(--dark-primary-color)"
-  light-primary-color: "var(--light-primary-color)"
-  text-primary-color: "var(--text-primary-color)"
-  primary-text-color: "var(--primary-text-color)"
-  secondary-text-color: "var(--secondary-text-color)"
-  disabled-text-color: "var(--disabled-text-color)"
-  label-badge-border-color: "var(--label-badge-border-color)"
-  primary-background-color: "var(--primary-background-color)"
-  secondary-background-color: "var(--secondary-background-color)"
-  divider-color: "var(--divider-color)"
-  table-row-background-color: "var(--table-row-background-color)"
-  table-row-alternative-background-color: "var(--table-row-alternative-background-color)"
-  paper-listbox-color: "var(--paper-listbox-color)"
-  paper-listbox-background-color: "var(--paper-listbox-background-color)"
-  paper-grey-50: "var(--paper-grey-50)"
-  paper-grey-200: "var(--paper-grey-200)"
-  paper-card-background-color: "var(--paper-card-background-color)"
-  paper-card-header-color: "var(--paper-card-header-color)"
-  paper-item-icon-color: "var(--paper-item-icon-color)"
-  paper-item-icon-active-color: "var(--paper-item-icon-active-color)"
-  paper-item-icon_-_color: "var(--paper-item-icon_-_color)"
-  paper-item-selected-_-background-color: "var(--paper-item-selected-_-background-color)"
-  paper-tabs-selection-bar-color: "var(--paper-tabs-selection-bar-color)"
-  sidebar-icon-color: "var(--sidebar-icon-color)"
-  sidebar-text-color: "var(--sidebar-text-color)"
-  sidebar-background-color: "var(--sidebar-background-color)"
-  sidebar-selected-icon-color: "var(--sidebar-selected-icon-color)"
-  sidebar-selected-text-color: "var(--sidebar-selected-text-color)"
-  card-background-color: "var(--card-background-color)"
-  
-  # ONLY modify these very specific variables that affect confirmation dialogs
-  # Research shows these are the most targeted variables for modal buttons
-  
-  # These should only affect actual confirmation modal buttons
-  ha-dialog-ok-button-color: "#4CAF50"
-  ha-dialog-ok-button-text-color: "#ffffff" 
-  ha-dialog-cancel-button-color: "#f44336"
-  ha-dialog-cancel-button-text-color: "#ffffff"
-  
-  # Make buttons bigger - these should only apply to dialog action buttons
-  dialog-button-height: "48px"
-  dialog-button-min-width: "120px"
-  dialog-button-padding: "0 24px"
-  dialog-button-font-size: "16px"
-  dialog-button-font-weight: "600"
-  dialog-button-border-radius: "8px"
+  # Inherit all theme variables to preserve existing styling
+  card-mod-theme: |
+    /* Target only confirmation dialog buttons */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button {
+      min-width: 45% !important;
+      height: 48px !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      margin: 4px !important;
+    }
+    
+    /* Cancel button styling - Red */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="plain"] {
+      background-color: #f44336 !important;
+      color: white !important;
+      border: 2px solid #f44336 !important;
+    }
+    
+    /* Cancel button hover effect */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="plain"]:hover {
+      background-color: #da190b !important;
+      border-color: #da190b !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* OK/Confirm button styling - Green */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="accent"] {
+      background-color: #4CAF50 !important;
+      color: white !important;
+      border: 2px solid #4CAF50 !important;
+    }
+    
+    /* OK/Confirm button hover effect */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="accent"]:hover {
+      background-color: #45a049 !important;
+      border-color: #45a049 !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* Actions container layout */
+    ha-md-dialog[type="alert"] [slot="actions"] {
+      display: flex !important;
+      gap: 12px !important;
+      justify-content: space-between !important;
+      padding: 16px !important;
+    }
