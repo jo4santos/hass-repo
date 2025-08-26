@@ -1,0 +1,28 @@
+# Example Button Theme
+# A minimal theme that only modifies modal confirmation buttons
+# while inheriting all other styling from the current theme
+
+Example Button Theme:
+  # Primary button (OK, Confirm, Save, etc.)
+  mdc-theme-primary: "#4CAF50"                    # Green confirm button
+  primary-color: "#4CAF50"                       # Fallback for older components
+  
+  # Secondary/Cancel button styling  
+  mdc-theme-secondary: "#f44336"                 # Red cancel button
+  accent-color: "#f44336"                        # Fallback for older components
+  
+  # Button text colors
+  text-primary-color: "#ffffff"                  # White text on primary buttons
+  primary-text-color: "#212121"                  # Keep default text color
+  
+  # Modal dialog colors (subtle changes)
+  card-background-color: "var(--primary-background-color)"  # Inherit from current theme
+  primary-background-color: "var(--primary-background-color)"  # Inherit from current theme
+  
+  # Hover states for buttons
+  mdc-theme-primary-hover: "#45a049"             # Darker green on hover
+  mdc-theme-secondary-hover: "#da190b"           # Darker red on hover
+  
+  # Focus states
+  mdc-theme-primary-focus: "#4CAF50"
+  mdc-theme-secondary-focus: "#f44336"
