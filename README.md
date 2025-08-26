@@ -1,46 +1,58 @@
-# Example Home Assistant add-on repository
+# Jose Santos Home Assistant Repository
 
-This repository can be used as a "blueprint" for add-on development to help you get started.
+This repository contains custom Home Assistant add-ons, integrations, and Lovelace cards.
 
-Add-on documentation: <https://developers.home-assistant.io/docs/add-ons>
+## Repository Structure
 
-[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhome-assistant%2Faddons-example)
+```
+├── addons/           # Home Assistant Add-ons
+├── integrations/     # HACS Custom Integrations  
+└── cards/           # HACS Lovelace Cards
+```
 
 ## Add-ons
 
-This repository contains the following add-ons
+Home Assistant add-ons extend the functionality of your Home Assistant installation.
 
-### [Example add-on](./example)
+**Add-on Repository URL:** `https://github.com/jo4santos/hass-repo/addons`
 
-![Supports aarch64 Architecture][aarch64-shield]
-![Supports amd64 Architecture][amd64-shield]
-![Supports armhf Architecture][armhf-shield]
-![Supports armv7 Architecture][armv7-shield]
-![Supports i386 Architecture][i386-shield]
+[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fjo4santos%2Fhass-repo)
 
-_Example add-on to use as a blueprint for new add-ons._
+### Available Add-ons
 
-<!--
+- [Example Add-on](./addons/example) - Example add-on template
 
-Notes to developers after forking or using the github template feature:
-- While developing comment out the 'image' key from 'example/config.yaml' to make the supervisor build the addon
-  - Remember to put this back when pushing up your changes.
-- When you merge to the 'main' branch of your repository a new build will be triggered.
-  - Make sure you adjust the 'version' key in 'example/config.yaml' when you do that.
-  - Make sure you update 'example/CHANGELOG.md' when you do that.
-  - The first time this runs you might need to adjust the image configuration on github container registry to make it public
-  - You may also need to adjust the github Actions configuration (Settings > Actions > General > Workflow > Read & Write)
-- Adjust the 'image' key in 'example/config.yaml' so it points to your username instead of 'home-assistant'.
-  - This is where the build images will be published to.
-- Rename the example directory.
-  - The 'slug' key in 'example/config.yaml' should match the directory name.
-- Adjust all keys/url's that points to 'home-assistant' to now point to your user/fork.
-- Share your repository on the forums https://community.home-assistant.io/c/projects/9
-- Do awesome stuff!
- -->
+## HACS Integrations
 
-[aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
-[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
-[armhf-shield]: https://img.shields.io/badge/armhf-yes-green.svg
-[armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
-[i386-shield]: https://img.shields.io/badge/i386-yes-green.svg
+Custom integrations that can be installed via HACS (Home Assistant Community Store).
+
+### Available Integrations
+
+*No integrations available yet*
+
+## HACS Lovelace Cards
+
+Custom dashboard cards that can be installed via HACS.
+
+### Available Cards
+
+*No cards available yet*
+
+## Installation Instructions
+
+### Add-ons
+1. Add this repository to your Home Assistant add-on store
+2. Install the desired add-on from the store
+
+### HACS Integrations/Cards
+1. Install HACS if not already installed
+2. Add custom repositories for individual integrations/cards
+3. Install via HACS interface
+
+## Development
+
+This repository uses a devcontainer for consistent development environment. Open in VS Code with the Dev Containers extension for the best experience.
+
+## License
+
+See [LICENSE](LICENSE) file for details.
