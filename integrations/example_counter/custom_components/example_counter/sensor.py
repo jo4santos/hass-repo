@@ -19,7 +19,8 @@ async def async_setup_platform(
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the Example Counter sensor platform."""
-    async_add_entities([ExampleCounterSensor()])
+    _LOGGER.info("Setting up Example Counter sensor platform")
+    async_add_entities([ExampleCounterSensor()], True)
 
 
 class ExampleCounterSensor(SensorEntity):
@@ -29,8 +30,10 @@ class ExampleCounterSensor(SensorEntity):
         """Initialize the sensor."""
         self._attr_name = "Example Counter"
         self._attr_unique_id = "example_counter_sensor"
+        self._attr_entity_id = "sensor.example_counter"
         self._state = 0
         self._attr_icon = "mdi:counter"
+        self._available = True
 
     @property
     def state(self):
@@ -42,7 +45,22 @@ class ExampleCounterSensor(SensorEntity):
         """Return the unit of measurement."""
         return "count"
 
+    @property
+    def available(self):
+        """Return if entity is available."""
+        return self._available
+
+    @property
+    def device_class(self):
+        """Return device class."""
+        return None
+
     def update(self):
         """Update the sensor state."""
-        self._state += 1
-        _LOGGER.debug("Counter updated to: %s", self._state)
+        try:
+            self._state += 1
+            self._available = True
+            _LOGGER.debug("Counter updated to: %s", self._state)
+        except Exception as ex:
+            _LOGGER.error("Error updating sensor: %s", ex)
+            self._available = False

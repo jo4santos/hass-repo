@@ -1,30 +1,22 @@
 """The Example Counter integration."""
 from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
 
 DOMAIN = "example_counter"
-PLATFORMS = ["sensor"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the Example Counter component."""
+    """Set up the Example Counter component from configuration.yaml."""
+    if DOMAIN not in config:
+        return True
+        
     hass.data[DOMAIN] = {}
     
-    # Load platform
-    await hass.helpers.discovery.async_load_platform("sensor", DOMAIN, {}, config)
+    # Load the sensor platform if configured
+    if "sensor" in config:
+        for sensor_config in config["sensor"]:
+            if sensor_config.get("platform") == DOMAIN:
+                await hass.helpers.discovery.async_load_platform(
+                    "sensor", DOMAIN, sensor_config, config
+                )
     
     return True
-
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Example Counter from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-    
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
-    return True
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

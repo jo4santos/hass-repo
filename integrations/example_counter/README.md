@@ -32,6 +32,10 @@ A simple Home Assistant custom integration that provides a counter sensor for de
 Add to your `configuration.yaml`:
 
 ```yaml
+# Add the integration
+example_counter:
+
+# Add the sensor
 sensor:
   - platform: example_counter
 ```

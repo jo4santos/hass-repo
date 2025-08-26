@@ -40,6 +40,16 @@ type: custom:example-counter-card
 entity: sensor.example_counter
 ```
 
+**Note**: Make sure you have the Example Counter integration installed and configured first:
+
+```yaml
+# configuration.yaml
+example_counter:
+
+sensor:
+  - platform: example_counter
+```
+
 ### Advanced Configuration
 
 ```yaml
