@@ -5,22 +5,23 @@ This repository contains custom Home Assistant add-ons, integrations, and Lovela
 ## Repository Structure
 
 ```
-├── addons/           # Home Assistant Add-ons
+├── example/          # Home Assistant Add-ons (root level)
 ├── integrations/     # HACS Custom Integrations  
-└── cards/           # HACS Lovelace Cards
+├── cards/           # HACS Lovelace Cards
+└── repository.yaml   # Add-on repository configuration
 ```
 
 ## Add-ons
 
 Home Assistant add-ons extend the functionality of your Home Assistant installation.
 
-**Add-on Repository URL:** `https://github.com/jo4santos/hass-repo/addons`
+**Add-on Repository URL:** `https://github.com/jo4santos/hass-repo`
 
 [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fjo4santos%2Fhass-repo)
 
 ### Available Add-ons
 
-- [Example Add-on](./addons/example) - Example add-on template
+- [Example Add-on](./example) - Example add-on template
 
 ## HACS Integrations
 
@@ -41,8 +42,9 @@ Custom dashboard cards that can be installed via HACS.
 ## Installation Instructions
 
 ### Add-ons
-1. Add this repository to your Home Assistant add-on store
-2. Install the desired add-on from the store
+1. In Home Assistant, go to **Supervisor** → **Add-on Store**
+2. Click **⋮** → **Repositories** → Add `https://github.com/jo4santos/hass-repo`
+3. Install desired add-ons from the store
 
 ### HACS Integrations/Cards
 1. Install HACS if not already installed
