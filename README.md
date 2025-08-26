@@ -39,6 +39,7 @@ Custom dashboard cards that can be installed via HACS.
 ### Available Cards
 
 - [Example Counter Card](./cards/example_counter_card) - Stylish card to display counter values
+- [Toggle Confirmation Card](./cards/toggle_confirmation_card) - Card that transforms into red/green confirmation buttons
 
 ## Home Assistant Themes
 
