@@ -1,0 +1,10 @@
+{
+  "domain": "example_counter",
+  "name": "Example Counter",
+  "codeowners": ["@jo4santos"],
+  "config_flow": false,
+  "documentation": "https://github.com/jo4santos/hass-repo/tree/main/integrations/example_counter",
+  "integration_type": "entity",
+  "iot_class": "calculated",
+  "version": "1.0.0"
+}

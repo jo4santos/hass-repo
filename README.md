@@ -29,7 +29,7 @@ Custom integrations that can be installed via HACS (Home Assistant Community Sto
 
 ### Available Integrations
 
-*No integrations available yet*
+- [Example Counter](./integrations/example_counter) - Simple counter sensor that increments every 30 seconds
 
 ## HACS Lovelace Cards
 
@@ -37,7 +37,7 @@ Custom dashboard cards that can be installed via HACS.
 
 ### Available Cards
 
-*No cards available yet*
+- [Example Counter Card](./cards/example_counter_card) - Stylish card to display counter values
 
 ## Installation Instructions
 
@@ -46,10 +46,17 @@ Custom dashboard cards that can be installed via HACS.
 2. Click **⋮** → **Repositories** → Add `https://github.com/jo4santos/hass-repo`
 3. Install desired add-ons from the store
 
-### HACS Integrations/Cards
+### HACS Integrations
 1. Install HACS if not already installed
-2. Add custom repositories for individual integrations/cards
-3. Install via HACS interface
+2. Go to HACS → Integrations → ⋮ → Custom repositories
+3. Add integration URL (e.g., `https://github.com/jo4santos/hass-repo/tree/main/integrations/example_counter`)
+4. Select category: Integration → Add → Install
+
+### HACS Cards
+1. Install HACS if not already installed  
+2. Go to HACS → Frontend → ⋮ → Custom repositories
+3. Add card URL (e.g., `https://github.com/jo4santos/hass-repo/tree/main/cards/example_counter_card`)
+4. Select category: Lovelace → Add → Install
 
 ## Development
 
