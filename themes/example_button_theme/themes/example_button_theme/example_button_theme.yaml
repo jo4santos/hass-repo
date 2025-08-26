@@ -1,0 +1,52 @@
+# Example Button Theme
+# NOTE: This theme requires card-mod integration for CSS injection
+# Targets only confirmation modal buttons in ha-md-dialog elements
+
+Example Button Theme:
+  # Inherit all theme variables to preserve existing styling
+  card-mod-theme: |
+    /* Target only confirmation dialog buttons */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button {
+      min-width: 45% !important;
+      height: 48px !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      margin: 4px !important;
+    }
+    
+    /* Cancel button styling - Red */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="plain"] {
+      background-color: #f44336 !important;
+      color: white !important;
+      border: 2px solid #f44336 !important;
+    }
+    
+    /* Cancel button hover effect */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="plain"]:hover {
+      background-color: #da190b !important;
+      border-color: #da190b !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* OK/Confirm button styling - Green */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="accent"] {
+      background-color: #4CAF50 !important;
+      color: white !important;
+      border: 2px solid #4CAF50 !important;
+    }
+    
+    /* OK/Confirm button hover effect */
+    ha-md-dialog[type="alert"] [slot="actions"] ha-button[appearance="accent"]:hover {
+      background-color: #45a049 !important;
+      border-color: #45a049 !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* Actions container layout */
+    ha-md-dialog[type="alert"] [slot="actions"] {
+      display: flex !important;
+      gap: 12px !important;
+      justify-content: space-between !important;
+      padding: 16px !important;
+    }
