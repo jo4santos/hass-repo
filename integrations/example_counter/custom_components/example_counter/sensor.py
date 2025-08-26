@@ -1,4 +1,6 @@
 """Example Counter sensor platform."""
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 
@@ -20,47 +22,32 @@ async def async_setup_platform(
 ) -> None:
     """Set up the Example Counter sensor platform."""
     _LOGGER.info("Setting up Example Counter sensor platform")
-    async_add_entities([ExampleCounterSensor()], True)
+    async_add_entities([ExampleCounterSensor()], update_before_add=True)
 
 
 class ExampleCounterSensor(SensorEntity):
     """Representation of an Example Counter sensor."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the sensor."""
         self._attr_name = "Example Counter"
         self._attr_unique_id = "example_counter_sensor"
-        self._attr_entity_id = "sensor.example_counter"
-        self._state = 0
         self._attr_icon = "mdi:counter"
-        self._available = True
+        self._attr_native_unit_of_measurement = "count"
+        self._attr_native_value = 0
+        self._attr_available = True
 
     @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
+    def native_value(self) -> int:
+        """Return the native value of the sensor."""
+        return self._attr_native_value
 
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return "count"
-
-    @property
-    def available(self):
-        """Return if entity is available."""
-        return self._available
-
-    @property
-    def device_class(self):
-        """Return device class."""
-        return None
-
-    def update(self):
+    def update(self) -> None:
         """Update the sensor state."""
         try:
-            self._state += 1
-            self._available = True
-            _LOGGER.debug("Counter updated to: %s", self._state)
+            self._attr_native_value += 1
+            self._attr_available = True
+            _LOGGER.debug("Counter updated to: %s", self._attr_native_value)
         except Exception as ex:
             _LOGGER.error("Error updating sensor: %s", ex)
-            self._available = False
+            self._attr_available = False
