@@ -58,13 +58,13 @@ Custom themes that enhance specific UI elements without overriding the entire in
 ### HACS Integrations
 1. Install HACS if not already installed
 2. Go to HACS → Integrations → ⋮ → Custom repositories
-3. Add integration URL (e.g., `https://github.com/jo4santos/hass-repo/tree/main/integrations/example_counter`)
+3. Add integration URL: `https://github.com/jo4santos/hass-repo-integration-counter`
 4. Select category: Integration → Add → Install
 
 ### HACS Cards
 1. Install HACS if not already installed  
 2. Go to HACS → Frontend → ⋮ → Custom repositories
-3. Add card URL (e.g., `https://github.com/jo4santos/hass-repo/tree/main/cards/example_counter_card`)
+3. Add card URL: `https://github.com/jo4santos/hass-repo-card-counter`
 4. Select category: Lovelace → Add → Install
 
 ### Themes

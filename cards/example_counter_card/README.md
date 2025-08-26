@@ -17,7 +17,7 @@ A simple custom Lovelace card that displays counter values with nice styling for
 1. Open HACS in Home Assistant
 2. Go to Frontend
 3. Click the three dots menu → Custom repositories
-4. Add this URL: `https://github.com/jo4santos/hass-repo/tree/main/cards/example_counter_card`
+4. Add this URL: `https://github.com/jo4santos/hass-repo-card-counter`
 5. Select category: Lovelace
 6. Click Add
 7. Install "Example Counter Card"

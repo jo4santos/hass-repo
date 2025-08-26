@@ -15,7 +15,7 @@ A simple Home Assistant custom integration that provides a counter sensor for de
 1. Open HACS in Home Assistant
 2. Go to Integrations
 3. Click the three dots menu → Custom repositories
-4. Add this URL: `https://github.com/jo4santos/hass-repo/tree/main/integrations/example_counter`
+4. Add this URL: `https://github.com/jo4santos/hass-repo-integration-counter`
 5. Select category: Integration
 6. Click Add
 7. Install "Example Counter"
