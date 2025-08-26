@@ -52,14 +52,16 @@ If buttons don't change:
 3. Clear browser cache (Ctrl+Shift+R or Cmd+Shift+R)
 4. Check Developer Tools Console for CSS loading errors
 
-## HTML Structure Targeted
+## DOM Structure Targeted
 
-This CSS targets:
-```html
-<ha-md-dialog type="alert">
-  <div slot="actions">
-    <ha-button appearance="plain">Cancel</ha-button>
-    <ha-button appearance="accent">OK</ha-button>
-  </div>
-</ha-md-dialog>
+This CSS targets the actual DOM structure:
+```
+/html/body/home-assistant//dialog-box//ha-md-dialog/div[3]/ha-button[1] (Cancel - Red)
+/html/body/home-assistant//dialog-box//ha-md-dialog/div[3]/ha-button[2] (OK - Green)
+```
+
+CSS Selectors used:
+```css
+home-assistant dialog-box ha-md-dialog div:nth-child(3) ha-button:first-child     /* Cancel */
+home-assistant dialog-box ha-md-dialog div:nth-child(3) ha-button:nth-child(2)   /* OK */
 ```
