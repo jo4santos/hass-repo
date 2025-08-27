@@ -42,15 +42,18 @@ entity: sensor.frigate_person_count
 
 **Note**: This card works great with the Example Counter integration. Install it first via HACS:
 
-1. Add the Example Counter integration repository: `https://github.com/jo4santos/hass-repo-integration-counter`
-2. Configure in `configuration.yaml`:
+1. Add the Frigate Person Counter integration: `https://github.com/jo4santos/hass-repo-integration-counter`
+2. Configure via UI (recommended):
+   - Go to **Settings** → **Devices & Services** → **Add Integration**
+   - Search for "Frigate Person Counter" and add it
+3. Or via `configuration.yaml`:
 
 ```yaml
-# configuration.yaml (domain remains example_counter)
-example_counter:
+# configuration.yaml
+frigate_person_counter:
 
 sensor:
-  - platform: example_counter  # Creates sensor.frigate_person_count
+  - platform: frigate_person_counter
 ```
 
 ### Advanced Configuration

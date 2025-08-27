@@ -5,6 +5,7 @@ import logging
 from datetime import timedelta
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, Event, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -20,8 +21,18 @@ async def async_setup_platform(
     async_add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Set up the Frigate Person Counter sensor platform."""
-    _LOGGER.info("Setting up Frigate Person Counter sensor platform")
+    """Set up the Frigate Person Counter sensor platform (YAML config)."""
+    _LOGGER.info("Setting up Frigate Person Counter sensor platform from YAML")
+    async_add_entities([FrigatePersonCounterSensor(hass)], update_before_add=True)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the Frigate Person Counter sensor from config entry (UI)."""
+    _LOGGER.info("Setting up Frigate Person Counter sensor from config entry")
     async_add_entities([FrigatePersonCounterSensor(hass)], update_before_add=True)
 
 

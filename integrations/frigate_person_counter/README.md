@@ -6,7 +6,8 @@ A Home Assistant custom integration that counts the number of times Frigate iden
 
 - **Person Detection Counter**: Counts new person detections from Frigate
 - **Event-Driven**: Real-time updates when Frigate detects a person
-- **Simple Setup**: Add via configuration.yaml with minimal configuration
+- **Simple Setup**: Add via UI or configuration.yaml with minimal configuration
+- **Config Flow Support**: Easy setup through Home Assistant UI
 - **HACS Compatible**: Can be installed as a custom repository
 - **Frigate Integration**: Works seamlessly with your existing Frigate setup
 
@@ -31,6 +32,16 @@ A Home Assistant custom integration that counts the number of times Frigate iden
 
 ## Configuration
 
+### Via UI (Recommended)
+
+1. Go to **Settings** → **Devices & Services**
+2. Click **Add Integration**
+3. Search for "Frigate Person Counter"
+4. Click to add the integration
+5. The sensor will be automatically created
+
+### Via YAML (Alternative)
+
 Add to your `configuration.yaml`:
 
 ```yaml
@@ -41,6 +52,8 @@ frigate_person_counter:
 sensor:
   - platform: frigate_person_counter
 ```
+
+Then restart Home Assistant.
 
 ## Entities Created
 

@@ -5,7 +5,7 @@
 echo "Updating HACS repositories via git subtree..."
 
 echo "Pushing integration subtree..."
-git subtree push --prefix=integrations/example_counter integration-repo main
+git subtree push --prefix=integrations/frigate_person_counter integration-repo main
 
 echo "Pushing example counter card subtree..."
 git subtree push --prefix=cards/example_counter_card card-repo main
