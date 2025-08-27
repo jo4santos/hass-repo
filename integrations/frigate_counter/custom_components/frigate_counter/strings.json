@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Frigate Counter",
+        "description": "Set up Frigate Counter to track person detections from your Frigate installation.\n\nFor more information, see: [Documentation]({docs_url})"
+      }
+    },
+    "error": {
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  }
+}
