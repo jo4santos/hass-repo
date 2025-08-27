@@ -1,6 +1,0 @@
-{
-  "name": "Example Counter Card",
-  "filename": "example-counter-card.js",
-  "render_readme": true,
-  "homeassistant": "2023.1.0"
-}

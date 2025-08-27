@@ -37,7 +37,6 @@ Custom dashboard cards that can be installed via HACS.
 
 ### Available Cards
 
-- **[Example Counter Card](https://github.com/jo4santos/hass-repo-card-counter)** - Stylish card to display counter values
 - **[Toggle Confirmation Card](https://github.com/jo4santos/hass-repo-toggle-card)** - Card that transforms into red/green confirmation buttons
 
 ## Installation Instructions
@@ -56,8 +55,7 @@ Custom dashboard cards that can be installed via HACS.
 ### HACS Cards
 1. Install HACS if not already installed  
 2. Go to HACS → Frontend → ⋮ → Custom repositories
-3. Add card URLs:
-   - **Counter Card**: `https://github.com/jo4santos/hass-repo-card-counter`
+3. Add card URL:
    - **Toggle Card**: `https://github.com/jo4santos/hass-repo-toggle-card`
 4. Select category: Lovelace → Add → Install
 
