@@ -4,7 +4,9 @@
   "codeowners": ["@jo4santos"],
   "config_flow": true,
   "documentation": "https://github.com/jo4santos/hass-repo-integration-counter",
-  "integration_type": "entity",
-  "iot_class": "local_polling",
-  "version": "3.1.0"
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "version": "3.1.1",
+  "dependencies": [],
+  "requirements": []
 }

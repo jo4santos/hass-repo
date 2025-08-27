@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Frigate Person Counter",
+        "description": "Set up Frigate Person Counter to track person detections from your Frigate installation.\n\nThis integration will listen for Frigate person detection events and maintain a count of detected persons.\n\nFor more information, see: [Documentation]({docs_url})"
+      }
+    },
+    "error": {
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  }
+}
