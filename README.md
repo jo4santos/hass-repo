@@ -13,9 +13,12 @@ Custom Home Assistant add-ons, integrations, and Lovelace cards.
 ## 🏠 HACS Components
 
 ### Integrations
+- **[Morning Routine Gamification](https://github.com/jo4santos/hass-repo-integration-morning-routine)** - Gamified morning routine tracker with points, achievements, and Google Drive integration
 - **[Frigate Person Counter](https://github.com/jo4santos/hass-repo-integration-counter)** - Counts Frigate person detections
 
-### Cards  
+### Cards
+- **[Morning Routine Card](https://github.com/jo4santos/hass-repo-card-morning-routine)** - Interactive card for tracking morning activities with photos, audio, and real-time weather
+- **[Daily Activities Card](https://github.com/jo4santos/hass-repo-daily-activities-card)** - Clean activity manager card without header
 - **[Toggle Confirmation Card](https://github.com/jo4santos/hass-repo-toggle-card)** - Red/green confirmation buttons
 
 ## 📦 Installation
