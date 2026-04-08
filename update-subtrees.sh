@@ -4,9 +4,6 @@
 
 echo "Updating HACS repositories via git subtree..."
 
-echo "Pushing integration subtree..."
-git subtree push --prefix=integrations/frigate_counter integration-repo main
-
 echo "Pushing toggle confirmation card subtree..."
 git subtree push --prefix=cards/toggle_confirmation_card toggle-card-repo main
 
@@ -25,7 +22,6 @@ git subtree push --prefix=cards/morning_routine_card morning-routine-card-repo m
 echo "✅ All subtrees updated successfully!"
 echo ""
 echo "HACS URLs:"
-echo "Integration: https://github.com/jo4santos/hass-repo-integration-counter"
 echo "Toggle Card: https://github.com/jo4santos/hass-repo-toggle-card"
 echo "Daily Activities Card: https://github.com/jo4santos/hass-repo-daily-activities-card"
 echo "Theme: https://github.com/jo4santos/hass-repo-theme"
