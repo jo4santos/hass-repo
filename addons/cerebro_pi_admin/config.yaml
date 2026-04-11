@@ -1,0 +1,21 @@
+name: "Cérebro-Pi Admin"
+description: "Interface de administração do Cérebro-Pi (proxy para o RPi)"
+version: "1.0.0"
+slug: cerebro_pi_admin
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:brain
+panel_title: "Cérebro-Pi"
+homeassistant_api: false
+options:
+  cerebro_host: "192.168.40.8"
+  cerebro_port: 8080
+schema:
+  cerebro_host: str
+  cerebro_port: int

@@ -1,0 +1,9 @@
+#!/usr/bin/with-contenv bashio
+
+CEREBRO_HOST=$(bashio::config 'cerebro_host')
+CEREBRO_PORT=$(bashio::config 'cerebro_port')
+
+sed -i "s/%%cerebro_host%%/${CEREBRO_HOST}/g" /etc/nginx/http.d/ingress.conf
+sed -i "s/%%cerebro_port%%/${CEREBRO_PORT}/g" /etc/nginx/http.d/ingress.conf
+
+exec nginx -g "daemon off;"
