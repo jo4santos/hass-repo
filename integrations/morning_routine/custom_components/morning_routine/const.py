@@ -83,6 +83,15 @@ CALENDAR_ACTIVITY_MAPPING = {
                 "nfc_required": True,
             }
         },
+        {
+            "pattern": "D-Música",
+            "activity": {
+                "id": "bateria",
+                "name": "Bateria",
+                "icon": "mdi:drum",
+                "nfc_required": True,
+            }
+        },
     ],
     "leonor": [
         {
