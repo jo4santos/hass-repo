@@ -1,10 +1,14 @@
 # HACS Custom Integrations
 
-This directory contains custom Home Assistant integrations that can be installed via HACS.
+Custom Home Assistant integrations. Each integration lives in its own subdirectory and is mirrored to a dedicated GitHub repo via git subtree so it can be installed via HACS as a custom repository.
 
-## Structure
+## Integrations
 
-Each integration should be in its own subdirectory with the following structure:
+| Path | HACS repo | Description |
+| --- | --- | --- |
+| [`morning_routine`](./morning_routine) | [`hass-repo-integration-morning-routine`](https://github.com/jo4santos/hass-repo-integration-morning-routine) | Gamified morning-routine tracker (points, achievements, per-child activities, Google Drive uploads). |
+
+## Layout
 
 ```
 integration_name/
@@ -13,28 +17,21 @@ integration_name/
 │       ├── __init__.py
 │       ├── manifest.json
 │       └── ... (other integration files)
-├── README.md
-└── hacs.json (optional)
+├── hacs.json
+└── README.md
 ```
 
-## Creating a New Integration
+## Creating a new integration
 
-1. Create a new directory for your integration
-2. Follow the Home Assistant integration development guidelines
-3. Ensure your `manifest.json` is properly configured
-4. Add a `hacs.json` file if needed for HACS-specific configuration
-5. Test your integration thoroughly
-
-## Installation
-
-Each integration can be added to HACS as a custom repository:
-
-1. Open HACS in Home Assistant
-2. Go to Integrations
-3. Click the three dots menu → Custom repositories  
-4. Add the URL: `https://github.com/jo4santos/hass-repo/tree/main/integrations/[integration_name]`
-5. Select category: Integration
-6. Click Add
+1. Create the subdirectory and scaffold the layout above (see [Home Assistant integration docs](https://developers.home-assistant.io/docs/creating_integration_index/)).
+2. Create the matching GitHub repo (`hass-repo-integration-<name>`).
+3. Add the remote and push the subtree:
+   ```bash
+   git remote add <name>-integration-repo git@github.com:jo4santos/hass-repo-integration-<name>.git
+   git subtree push --prefix=integrations/<name> <name>-integration-repo main
+   ```
+4. Append the push line to [`../update-subtrees.sh`](../update-subtrees.sh).
+5. Install via HACS → ⋮ → Custom repositories with category **Integration**.
 
 ## Resources
 

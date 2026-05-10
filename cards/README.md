@@ -1,38 +1,41 @@
 # HACS Lovelace Cards
 
-This directory contains custom Lovelace dashboard cards that can be installed via HACS.
+Custom Lovelace cards. Each card lives in its own subdirectory and is mirrored to a dedicated GitHub repo via git subtree so it can be installed via HACS as a custom repository.
 
-## Structure
+## Cards
 
-Each card should be in its own subdirectory with the following structure:
+| Path | HACS repo | Description |
+| --- | --- | --- |
+| [`morning_routine_card`](./morning_routine_card) | [`hass-repo-card-morning-routine`](https://github.com/jo4santos/hass-repo-card-morning-routine) | Interactive morning-routine tracker with photos, audio, weather and Bubble Card integration. |
+| [`daily_activities_card`](./daily_activities_card) | [`hass-repo-daily-activities-card`](https://github.com/jo4santos/hass-repo-daily-activities-card) | Headerless variant of the Activity Manager card. |
+| [`toggle_confirmation_card`](./toggle_confirmation_card) | [`hass-repo-toggle-card`](https://github.com/jo4santos/hass-repo-toggle-card) | Inline red/green confirm/cancel buttons. |
+| [`podcast_card`](./podcast_card) | [`hass-repo-card-podcast`](https://github.com/jo4santos/hass-repo-card-podcast) | Grid/list of podcast episodes loaded from `episodes.json`, plays via Music Assistant. |
+
+## Layout
 
 ```
 card_name/
-├── dist/
-│   └── card-name.js (main card file)
-├── src/ (optional - source files)
-├── README.md
-└── hacs.json (optional)
+├── podcast-card.js     ← source (the file HACS serves)
+├── dist/               ← compiled copy (kept in sync with source)
+│   └── podcast-card.js
+├── hacs.json
+└── README.md
 ```
 
-## Creating a New Card
+`hacs.json.filename` must match the JS file served from the repository root.
 
-1. Create a new directory for your card
-2. Develop your custom card following Lovelace card development guidelines
-3. Place the compiled JavaScript file in the `dist/` directory
-4. Ensure the filename matches the repository name (minus "lovelace-" prefix if present)
-5. Add proper documentation in README.md
+## Creating a new card
 
-## Installation
-
-Each card can be added to HACS as a custom repository:
-
-1. Open HACS in Home Assistant
-2. Go to Frontend
-3. Click the three dots menu → Custom repositories
-4. Add the URL: `https://github.com/jo4santos/hass-repo/tree/main/cards/[card_name]`
-5. Select category: Lovelace
-6. Click Add
+1. Create the subdirectory and scaffold the layout above.
+2. Implement the card and document it in its `README.md`.
+3. Create the matching GitHub repo (`hass-repo-card-<name>`).
+4. Add the remote and do the first subtree push:
+   ```bash
+   git remote add <name>-card-repo git@github.com:jo4santos/hass-repo-card-<name>.git
+   git subtree push --prefix=cards/<name>_card <name>-card-repo main
+   ```
+5. Append the new push line to [`../update-subtrees.sh`](../update-subtrees.sh).
+6. Install via HACS → ⋮ → Custom repositories with category **Lovelace**.
 
 ## Resources
 
