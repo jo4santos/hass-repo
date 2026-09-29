@@ -22,6 +22,9 @@ git subtree push --prefix=cards/morning_routine_card morning-routine-card-repo m
 echo "Pushing podcast card subtree..."
 git subtree push --prefix=cards/podcast_card podcast-card-repo main
 
+echo "Pushing tts media resolver integration subtree..."
+git subtree push --prefix=integrations/tts_media_resolver tts-media-resolver-integration-repo main
+
 echo "✅ All subtrees updated successfully!"
 echo ""
 echo "HACS URLs:"
@@ -31,3 +34,4 @@ echo "Theme: https://github.com/jo4santos/hass-repo-theme"
 echo "Morning Routine Integration: https://github.com/jo4santos/hass-repo-integration-morning-routine"
 echo "Morning Routine Card: https://github.com/jo4santos/hass-repo-card-morning-routine"
 echo "Podcast Card: https://github.com/jo4santos/hass-repo-card-podcast"
+echo "TTS Media Resolver Integration: https://github.com/jo4santos/hass-repo-integration-tts-media-resolver"

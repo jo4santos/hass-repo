@@ -7,6 +7,7 @@ Custom Home Assistant integrations. Each integration lives in its own subdirecto
 | Path | HACS repo | Description |
 | --- | --- | --- |
 | [`morning_routine`](./morning_routine) | [`hass-repo-integration-morning-routine`](https://github.com/jo4santos/hass-repo-integration-morning-routine) | Gamified morning-routine tracker (points, achievements, per-child activities, Google Drive uploads). |
+| [`tts_media_resolver`](./tts_media_resolver) | [`hass-repo-integration-tts-media-resolver`](https://github.com/jo4santos/hass-repo-integration-tts-media-resolver) | Resolves a `media-source://` TTS reference into a real, absolute playable URL (no stored credentials). |
 
 ## Layout
 
