@@ -1,0 +1,68 @@
+name: Sync HACS subtrees
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "integrations/**"
+      - "cards/**"
+      - "themes/**"
+      - ".github/workflows/sync-subtrees.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-subtrees
+  cancel-in-progress: false
+
+jobs:
+  push-subtrees:
+    name: Push subtrees to HACS repos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push each subtree to its HACS repo
+        env:
+          TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TOKEN}" ]; then
+            echo "::error::Secret SUBTREE_PUSH_TOKEN is not set"
+            exit 1
+          fi
+
+          # prefix -> dedicated HACS repo (keep in sync with update-subtrees.sh)
+          subtrees=(
+            "cards/toggle_confirmation_card=hass-repo-toggle-card"
+            "cards/daily_activities_card=hass-repo-daily-activities-card"
+            "themes/example_button_theme=hass-repo-theme"
+            "integrations/morning_routine=hass-repo-integration-morning-routine"
+            "cards/morning_routine_card=hass-repo-card-morning-routine"
+            "cards/podcast_card=hass-repo-card-podcast"
+            "integrations/tts_media_resolver=hass-repo-integration-tts-media-resolver"
+          )
+
+          failed=0
+          for entry in "${subtrees[@]}"; do
+            prefix="${entry%%=*}"
+            repo="${entry#*=}"
+            echo "::group::${prefix} -> jo4santos/${repo}"
+            if git subtree push --prefix="${prefix}" \
+                "https://x-access-token:${TOKEN}@github.com/jo4santos/${repo}.git" main; then
+              echo "OK"
+            else
+              echo "::error::Failed to push ${prefix} to ${repo}"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "${failed}"
