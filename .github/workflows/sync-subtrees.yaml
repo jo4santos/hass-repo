@@ -1,5 +1,20 @@
 name: Sync HACS subtrees
 
+# Pushes every component subtree to its dedicated HACS repository and, for
+# components in "release" mode, creates a GitHub release when the version in
+# the source changes. Requires the SUBTREE_PUSH_TOKEN secret: a fine-grained
+# PAT with "Contents: read and write" on the dedicated repos.
+#
+# HACS update modes:
+#   branch  -> HACS follows the head of `main`; every push is an update.
+#   release -> HACS follows the latest GitHub release; a push only becomes an
+#              update once a release exists for the new version. This workflow
+#              creates it automatically when the version string changes.
+#
+# Version detection:
+#   integrations -> "version" in custom_components/*/manifest.json
+#   cards        -> first X.Y.Z in the file named by hacs.json "filename"
+
 on:
   push:
     branches:
@@ -34,9 +49,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Push each subtree to its HACS repo
+      - name: Push each subtree and publish releases
         env:
           TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
+          GH_TOKEN: ${{ secrets.SUBTREE_PUSH_TOKEN }}
+          OWNER: jo4santos
         run: |
           set -euo pipefail
           if [ -z "${TOKEN}" ]; then
@@ -44,29 +61,77 @@ jobs:
             exit 1
           fi
 
-          # prefix -> dedicated HACS repo (keep in sync with update-subtrees.sh)
+          # prefix=dedicated HACS repo=mode   (keep in sync with update-subtrees.sh)
           subtrees=(
-            "cards/toggle_confirmation_card=hass-repo-toggle-card"
-            "cards/daily_activities_card=hass-repo-daily-activities-card"
-            "themes/example_button_theme=hass-repo-theme"
-            "integrations/morning_routine=hass-repo-integration-morning-routine"
-            "cards/morning_routine_card=hass-repo-card-morning-routine"
-            "cards/podcast_card=hass-repo-card-podcast"
-            "integrations/tts_media_resolver=hass-repo-integration-tts-media-resolver"
+            "cards/toggle_confirmation_card=hass-repo-toggle-card=branch"
+            "cards/daily_activities_card=hass-repo-daily-activities-card=release"
+            "themes/example_button_theme=hass-repo-theme=branch"
+            "integrations/morning_routine=hass-repo-integration-morning-routine=release"
+            "cards/morning_routine_card=hass-repo-card-morning-routine=release"
+            "cards/podcast_card=hass-repo-card-podcast=branch"
+            "integrations/tts_media_resolver=hass-repo-integration-tts-media-resolver=branch"
           )
 
+          detect_version() {
+            local prefix="$1" manifest filename
+            manifest=$(ls "${prefix}"/custom_components/*/manifest.json 2>/dev/null | head -n1 || true)
+            if [ -n "${manifest}" ]; then
+              jq -r '.version // empty' "${manifest}"
+              return
+            fi
+            filename=$(jq -r '.filename // empty' "${prefix}/hacs.json" 2>/dev/null || true)
+            if [ -n "${filename}" ] && [ -f "${prefix}/${filename}" ]; then
+              grep -oEm1 '[0-9]+\.[0-9]+\.[0-9]+' "${prefix}/${filename}" || true
+            fi
+          }
+
           failed=0
+          summary="## HACS sync"$'\n\n'"| Component | Repo | Push | Release |"$'\n'"|---|---|---|---|"
           for entry in "${subtrees[@]}"; do
-            prefix="${entry%%=*}"
-            repo="${entry#*=}"
-            echo "::group::${prefix} -> jo4santos/${repo}"
-            if git subtree push --prefix="${prefix}" \
-                "https://x-access-token:${TOKEN}@github.com/jo4santos/${repo}.git" main; then
-              echo "OK"
+            IFS='=' read -r prefix repo mode <<< "${entry}"
+            url="https://x-access-token:${TOKEN}@github.com/${OWNER}/${repo}.git"
+            push_status="failed"; release_status="n/a (branch mode)"
+
+            echo "::group::${prefix} -> ${OWNER}/${repo} [${mode}]"
+            if git subtree push --prefix="${prefix}" "${url}" main; then
+              push_status="ok"
             else
               echo "::error::Failed to push ${prefix} to ${repo}"
               failed=1
             fi
+
+            if [ "${push_status}" = "ok" ] && [ "${mode}" = "release" ]; then
+              version=$(detect_version "${prefix}")
+              if [ -z "${version}" ]; then
+                echo "::warning::${prefix}: could not detect a version, skipping release"
+                release_status="skipped (no version found)"
+              else
+                tag="v${version}"
+                if gh release view "${tag}" --repo "${OWNER}/${repo}" >/dev/null 2>&1; then
+                  echo "Release ${tag} already exists"
+                  release_status="${tag} exists"
+                else
+                  sha=$(git ls-remote "${url}" refs/heads/main | cut -f1)
+                  name=$(jq -r '.name // empty' "${prefix}/hacs.json")
+                  notes=$(git log -1 --format='%B' -- "${prefix}")
+                  echo "Creating release ${tag} at ${sha}"
+                  if gh release create "${tag}" \
+                       --repo "${OWNER}/${repo}" \
+                       --target "${sha}" \
+                       --title "${name:-${repo}} ${tag}" \
+                       --notes "${notes:-Release ${tag}}"; then
+                    release_status="${tag} created"
+                  else
+                    echo "::error::Failed to create release ${tag} on ${repo}"
+                    release_status="${tag} FAILED"
+                    failed=1
+                  fi
+                fi
+              fi
+            fi
             echo "::endgroup::"
+            summary+=$'\n'"| ${prefix} | ${repo} | ${push_status} | ${release_status} |"
           done
+
+          echo "${summary}" >> "${GITHUB_STEP_SUMMARY}"
           exit "${failed}"

@@ -40,11 +40,14 @@ Custom Home Assistant add-ons, integrations, Lovelace cards and themes. Each com
 
 ## 🛠 Working on this repo
 
-Each card / integration / theme is a git subtree pointing at its own GitHub repo. After editing a component locally:
+Each card / integration / theme is a git subtree pointing at its own GitHub repo. Publishing is automatic:
 
-1. Commit the changes on `main` in this repo.
-2. Run `./update-subtrees.sh` to push each affected component to its dedicated repo (HACS pulls from there).
-3. Bump versions in the component's source where applicable so HACS picks up the new release.
+1. Edit the component and commit on `main` in this repo. Only ever edit here, never directly in the dedicated repos (that breaks the subtree fast-forward).
+2. The `Sync HACS subtrees` GitHub Action (`.github/workflows/sync-subtrees.yaml`) pushes every subtree to its dedicated repo on each push to `main`.
+3. Components in **release** mode (Daily Activities Card, Morning Routine integration, Morning Routine Card) are only updated in HACS through GitHub releases. Bump the version in the source (`manifest.json` for integrations, the version string at the top of the card `.js` for cards) and the Action creates the `vX.Y.Z` release automatically, using the commit message as release notes. No version bump = no HACS update.
+4. Components in **branch** mode (everything else) are updated in HACS on every push, no version bump needed.
+
+`./update-subtrees.sh` still works for a manual push if the Action is unavailable. The Action needs the `SUBTREE_PUSH_TOKEN` secret (fine-grained PAT, Contents: read/write on the dedicated repos); when it expires, generate a new one and run `gh secret set SUBTREE_PUSH_TOKEN -R jo4santos/hass-repo`.
 
 Layout:
 
@@ -53,5 +56,6 @@ addons/         — Home Assistant add-ons (served via the repository URL above)
 cards/          — Custom Lovelace cards (one subtree per card)
 integrations/   — Custom integrations (custom_components)
 themes/         — Custom themes
-update-subtrees.sh  — pushes every subtree to its dedicated HACS repo
+update-subtrees.sh  — manual fallback: pushes every subtree to its dedicated HACS repo
+.github/workflows/sync-subtrees.yaml — automatic subtree push + HACS releases
 ```
