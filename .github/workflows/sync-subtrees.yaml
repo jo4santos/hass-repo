@@ -24,6 +24,10 @@ jobs:
         uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
+          # Do not persist GITHUB_TOKEN as an http.extraheader: it would
+          # override the PAT embedded in the push URLs below (403 as
+          # github-actions[bot]).
+          persist-credentials: false
 
       - name: Configure git identity
         run: |
