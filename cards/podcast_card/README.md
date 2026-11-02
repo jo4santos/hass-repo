@@ -7,6 +7,8 @@ Custom Lovelace card that renders a podcast as a grid of episode covers loaded f
 - Grid of episodes with cover images (loaded from `/local/podcasts/episodes.json` by default).
 - Click a cover to play; small button to enqueue next.
 - Search by title/description, sort by number/title/duration, shuffle.
+- **Multi-select (v1.5.0):** the list-check button in the toolbar turns on selection mode. Tap several episodes — each shows its play order — then **Tocar** plays them in that order (replacing the queue) or **Fila** appends them to the current queue.
+- **Favourites (v1.5.0):** heart on every episode; the toolbar heart filters to favourites only, and favourites are always listed first. Stored per Home Assistant user (`frontend/set_user_data`), so they follow the user across devices (localStorage fallback).
 - Single source of truth: refresh `episodes.json` and the card updates — no helpers/scripts to keep in sync.
 - Plays via `music_assistant.play_media` with the absolute URL of the audio file.
 

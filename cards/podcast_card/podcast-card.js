@@ -1,7 +1,8 @@
-// Podcast Card v1.4.0 — grid/list of podcast episodes loaded from a JSON manifest.
+// Podcast Card v1.5.0 — grid/list of podcast episodes loaded from a JSON manifest.
 // Plays via Music Assistant (music_assistant.play_media) using the absolute URL.
+// v1.5.0: multi-select (ordered playback / queue) and per-user favourites.
 
-const CARD_VERSION = "1.4.0";
+const CARD_VERSION = "1.5.0";
 
 const SORT_OPTIONS = [
     { value: "title", icon: "mdi:sort-alphabetical-ascending", label: "Título" },
@@ -20,6 +21,11 @@ class PodcastCard extends HTMLElement {
         this._podcast = null;
         this._error = null;
         this._currentNum = null;
+        this._multi = false;
+        this._selected = [];
+        this._favs = new Set();
+        this._favOnly = false;
+        this._favsRequested = false;
 
         // HA listens for keyboard shortcuts (e/c/m/d) on window. We register on window
         // in capture phase so we run before any bubble/listener HA has, and we also register
@@ -90,6 +96,10 @@ class PodcastCard extends HTMLElement {
 
     set hass(hass) {
         this._hass = hass;
+        if (!this._favsRequested && this._config) {
+            this._favsRequested = true;
+            this._loadFavs();
+        }
         if (!this._loaded) {
             this._loadEpisodes();
             return;
@@ -167,21 +177,127 @@ class PodcastCard extends HTMLElement {
         });
     }
 
+    // ---- Favourites (stored per HA user via frontend user data, localStorage fallback) ----
+
+    _favKey() {
+        return "podcast_card_fav_" + this._config.base_path.replace(/[^a-zA-Z0-9]+/g, "_");
+    }
+
+    async _loadFavs() {
+        let nums = null;
+        try {
+            const res = await this._hass.callWS({
+                type: "frontend/get_user_data",
+                key: this._favKey(),
+            });
+            if (Array.isArray(res?.value)) nums = res.value;
+        } catch (e) {
+            // fall through to localStorage
+        }
+        if (nums === null) {
+            try {
+                const raw = window.localStorage.getItem(this._favKey());
+                if (raw) nums = JSON.parse(raw);
+            } catch (e) {
+                nums = null;
+            }
+        }
+        this._favs = new Set(Array.isArray(nums) ? nums.map(Number) : []);
+        if (this._renderState === "ready") this._render();
+    }
+
+    async _saveFavs() {
+        const arr = [...this._favs];
+        try {
+            window.localStorage.setItem(this._favKey(), JSON.stringify(arr));
+        } catch (e) {
+            // ignore
+        }
+        try {
+            await this._hass.callWS({
+                type: "frontend/set_user_data",
+                key: this._favKey(),
+                value: arr,
+            });
+        } catch (e) {
+            console.warn("podcast-card: could not save favourites to user data", e);
+        }
+    }
+
+    _toggleFav(ep) {
+        if (this._favs.has(ep.number)) this._favs.delete(ep.number);
+        else this._favs.add(ep.number);
+        this._saveFavs();
+        this._updateActionsState();
+        this._updateScroller();
+    }
+
+    // ---- Multi-select ----
+
+    _toggleSelect(ep) {
+        const i = this._selected.indexOf(ep.number);
+        if (i >= 0) this._selected.splice(i, 1);
+        else this._selected.push(ep.number);
+        this._updateScroller();
+        this._updateSelBar();
+    }
+
+    _toggleMulti() {
+        this._multi = !this._multi;
+        if (!this._multi) this._selected = [];
+        this._updateActionsState();
+        this._updateScroller();
+        this._updateSelBar();
+    }
+
+    async _playSelected(queueOnly) {
+        if (!this._hass || !this._selected.length) return;
+        const eps = this._selected
+            .map((n) => this._episodes.find((e) => e.number === n))
+            .filter(Boolean);
+        if (!eps.length) return;
+        try {
+            for (let i = 0; i < eps.length; i++) {
+                const enqueue = queueOnly ? "add" : (i === 0 ? "replace" : "add");
+                await this._hass.callService("music_assistant", "play_media", {
+                    entity_id: this._config.media_player,
+                    media_id: this._audioUrl(eps[i]),
+                    media_type: "track",
+                    enqueue,
+                });
+            }
+        } catch (e) {
+            console.warn("podcast-card: failed to play selection", e);
+        }
+        if (!queueOnly) this._currentNum = eps[0].number;
+        this._selected = [];
+        this._multi = false;
+        this._updateHeader();
+        this._updateActionsState();
+        this._updateScroller();
+        this._updateSelBar();
+    }
+
     _filtered() {
         const q = this._search.trim().toLowerCase();
-        const list = q
+        let list = q
             ? this._episodes.filter((ep) =>
                   (ep.title || "").toLowerCase().includes(q) ||
                   (ep.description || "").toLowerCase().includes(q)
               )
             : [...this._episodes];
 
+        if (this._favOnly) list = list.filter((ep) => this._favs.has(ep.number));
+
         if (this._sort === "duration") {
             list.sort((a, b) => (b.duration_seconds || 0) - (a.duration_seconds || 0));
         } else {
             list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
         }
-        return list;
+        // Favourites always first (stable: keeps the chosen order inside each group).
+        const fav = list.filter((ep) => this._favs.has(ep.number));
+        const rest = list.filter((ep) => !this._favs.has(ep.number));
+        return [...fav, ...rest];
     }
 
     _render() {
@@ -221,6 +337,34 @@ class PodcastCard extends HTMLElement {
         this._updateHeader();
         this._updateActionsState();
         this._updateScroller();
+        this._updateSelBar();
+    }
+
+    _renderSelBar() {
+        const n = this._selected.length;
+        if (!this._multi) return "";
+        if (!n) return `<div class="selbar hint">Toca nas histórias para escolher a ordem de reprodução.</div>`;
+        return `
+            <div class="selbar">
+                <span class="sel-count">${n} selecionada${n > 1 ? "s" : ""}</span>
+                <button class="bubble-pill sel-clear" title="Limpar seleção"><ha-icon icon="mdi:close"></ha-icon><span>Limpar</span></button>
+                <button class="bubble-pill sel-queue" title="Acrescentar à fila"><ha-icon icon="mdi:playlist-plus"></ha-icon><span>Fila</span></button>
+                <button class="bubble-pill is-active sel-play" title="Tocar pela ordem escolhida"><ha-icon icon="mdi:play"></ha-icon><span>Tocar</span></button>
+            </div>
+        `;
+    }
+
+    _updateSelBar() {
+        const slot = this.shadowRoot.querySelector(".selbar-slot");
+        if (!slot) return;
+        slot.innerHTML = this._renderSelBar();
+        const on = (sel, fn) => {
+            const el = slot.querySelector(sel);
+            if (el) el.addEventListener("click", fn);
+        };
+        on(".sel-clear", () => { this._selected = []; this._updateScroller(); this._updateSelBar(); });
+        on(".sel-queue", () => this._playSelected(true));
+        on(".sel-play", () => this._playSelected(false));
     }
 
     _renderShell() {
@@ -228,8 +372,10 @@ class PodcastCard extends HTMLElement {
         this.shadowRoot.innerHTML = this._wrap(`
             <div class="header-slot">${this._renderCurrent()}</div>
             ${this._renderActions(filtered.length)}
+            <div class="selbar-slot"></div>
             <div class="scroller">${this._renderScrollerInner(filtered)}</div>
         `);
+        this._updateSelBar();
         this._wireShellEvents();
         this._wireScrollerEvents();
     }
@@ -249,6 +395,14 @@ class PodcastCard extends HTMLElement {
         if (tg) tg.setAttribute("icon", this._view === "grid" ? "mdi:format-list-bulleted" : "mdi:view-grid");
         const tgBtn = this.shadowRoot.querySelector(".view-toggle");
         if (tgBtn) tgBtn.setAttribute("title", this._view === "grid" ? "Vista lista" : "Vista grelha");
+        const multiBtn = this.shadowRoot.querySelector(".multi-toggle");
+        if (multiBtn) multiBtn.classList.toggle("is-on", this._multi);
+        const favBtn = this.shadowRoot.querySelector(".fav-toggle");
+        if (favBtn) {
+            favBtn.classList.toggle("is-on", this._favOnly);
+            const ic = favBtn.querySelector("ha-icon");
+            if (ic) ic.setAttribute("icon", this._favOnly ? "mdi:heart" : "mdi:heart-outline");
+        }
         const counter = this.shadowRoot.querySelector(".counter");
         if (counter) counter.textContent = `${filtered.length} de ${this._episodes.length}`;
     }
@@ -332,6 +486,14 @@ class PodcastCard extends HTMLElement {
                 </button>
             `);
         }
+        topParts.push(`
+            <button class="bubble-btn fav-toggle${this._favOnly ? " is-on" : ""}" title="Mostrar só favoritas">
+                <ha-icon icon="${this._favOnly ? "mdi:heart" : "mdi:heart-outline"}"></ha-icon>
+            </button>
+            <button class="bubble-btn multi-toggle${this._multi ? " is-on" : ""}" title="Selecionar várias">
+                <ha-icon icon="mdi:playlist-check"></ha-icon>
+            </button>
+        `);
         if (this._config.show_random) {
             topParts.push(`
                 <button class="bubble-btn primary random" title="Aleatório">
@@ -361,18 +523,33 @@ class PodcastCard extends HTMLElement {
         return `<div class="grid">${list.map((ep) => this._renderGridItem(ep)).join("")}</div>`;
     }
 
+    _favBtn(ep) {
+        const f = this._favs.has(ep.number);
+        return `<button class="fav${f ? " is-fav" : ""}" data-num="${ep.number}" title="${f ? "Remover dos favoritos" : "Adicionar aos favoritos"}">
+            <ha-icon icon="${f ? "mdi:heart" : "mdi:heart-outline"}"></ha-icon>
+        </button>`;
+    }
+
+    _selBadge(ep) {
+        const i = this._selected.indexOf(ep.number);
+        return i >= 0 ? `<div class="sel-badge">${i + 1}</div>` : "";
+    }
+
     _renderGridItem(ep) {
         const isCurrent = ep.number === this._currentNum;
+        const isSel = this._selected.includes(ep.number);
         return `
-            <div class="episode${isCurrent ? " is-current" : ""}" data-num="${ep.number}" tabindex="0">
+            <div class="episode${isCurrent ? " is-current" : ""}${isSel ? " is-selected" : ""}" data-num="${ep.number}" tabindex="0">
                 <div class="cover">
                     <img src="${this._escape(this._imageUrl(ep))}" alt="" loading="lazy">
                     <div class="overlay">
-                        <ha-icon icon="mdi:play-circle"></ha-icon>
+                        <ha-icon icon="${this._multi ? "mdi:check-circle" : "mdi:play-circle"}"></ha-icon>
                     </div>
                     <button class="add-next" data-num="${ep.number}" title="Adicionar à fila">
                         <ha-icon icon="mdi:playlist-plus"></ha-icon>
                     </button>
+                    ${this._favBtn(ep)}
+                    ${this._selBadge(ep)}
                     ${isCurrent ? `<div class="badge"><ha-icon icon="mdi:music-note"></ha-icon></div>` : ""}
                 </div>
                 <div class="info">
@@ -389,20 +566,23 @@ class PodcastCard extends HTMLElement {
 
     _renderListItem(ep) {
         const isCurrent = ep.number === this._currentNum;
+        const isSel = this._selected.includes(ep.number);
         return `
-            <div class="list-item${isCurrent ? " is-current" : ""}" data-num="${ep.number}" tabindex="0">
+            <div class="list-item${isCurrent ? " is-current" : ""}${isSel ? " is-selected" : ""}" data-num="${ep.number}" tabindex="0">
                 <div class="list-thumb">
                     <img src="${this._escape(this._imageUrl(ep))}" alt="" loading="lazy">
+                    ${this._selBadge(ep)}
                     ${isCurrent ? `<div class="badge"><ha-icon icon="mdi:music-note"></ha-icon></div>` : ""}
                 </div>
                 <div class="list-info">
                     <div class="list-title">${this._escape(ep.title || "")}</div>
                     ${ep.duration ? `<div class="list-meta">${this._escape(ep.duration)}</div>` : ""}
                 </div>
+                ${this._favBtn(ep)}
                 <button class="add-next" data-num="${ep.number}" title="Adicionar à fila">
                     <ha-icon icon="mdi:playlist-plus"></ha-icon>
                 </button>
-                <ha-icon class="list-play" icon="mdi:play-circle"></ha-icon>
+                <ha-icon class="list-play" icon="${this._multi ? "mdi:check-circle" : "mdi:play-circle"}"></ha-icon>
             </div>
         `;
     }
@@ -439,6 +619,18 @@ class PodcastCard extends HTMLElement {
             });
         }
 
+        const favT = root.querySelector(".fav-toggle");
+        if (favT) {
+            favT.addEventListener("click", () => {
+                this._favOnly = !this._favOnly;
+                this._updateActionsState();
+                this._updateScroller();
+            });
+        }
+
+        const multiT = root.querySelector(".multi-toggle");
+        if (multiT) multiT.addEventListener("click", () => this._toggleMulti());
+
         const rnd = root.querySelector(".random");
         if (rnd) {
             rnd.addEventListener("click", () => {
@@ -454,12 +646,23 @@ class PodcastCard extends HTMLElement {
         const playClick = (el) => {
             const num = Number(el.dataset.num);
             const ep = this._episodes.find((x) => x.number === num);
-            if (ep) this._play(ep);
+            if (!ep) return;
+            if (this._multi) this._toggleSelect(ep);
+            else this._play(ep);
         };
+
+        root.querySelectorAll(".fav").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const num = Number(btn.dataset.num);
+                const ep = this._episodes.find((x) => x.number === num);
+                if (ep) this._toggleFav(ep);
+            });
+        });
 
         root.querySelectorAll(".episode, .list-item").forEach((el) => {
             el.addEventListener("click", (e) => {
-                if (e.target.closest(".add-next")) return;
+                if (e.target.closest(".add-next") || e.target.closest(".fav")) return;
                 playClick(el);
             });
             el.addEventListener("keydown", (e) => {
@@ -822,6 +1025,84 @@ class PodcastCard extends HTMLElement {
                 color: var(--primary-color);
                 opacity: 1;
             }
+
+            .bubble-btn.is-on {
+                background: var(--primary-color);
+                color: var(--text-primary-color, white);
+            }
+            .selbar {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 8px;
+                border-radius: 12px;
+                background: color-mix(in srgb, var(--primary-color) 14%, var(--secondary-background-color, var(--card-background-color)));
+            }
+            .selbar.hint {
+                font-size: 0.82em;
+                color: var(--secondary-text-color);
+            }
+            .sel-count { flex: 1; font-size: 0.88em; font-weight: 600; color: var(--primary-text-color); }
+            .selbar .bubble-pill { background: var(--secondary-background-color, var(--card-background-color)); color: var(--primary-text-color); }
+            .selbar .bubble-pill.is-active { background: var(--primary-color); color: var(--text-primary-color, white); }
+            .selbar .bubble-pill { width: auto; height: auto; padding: 6px 12px; }
+            .selbar .bubble-pill span { display: inline; }
+
+            .fav {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                border: none;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                background: rgba(0,0,0,0.55);
+                color: white;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                opacity: 0;
+                transition: opacity 0.15s ease, background 0.15s ease;
+                z-index: 2;
+            }
+            .fav ha-icon { --mdc-icon-size: 18px; }
+            .fav.is-fav { opacity: 1; color: #ff5a7a; }
+            .episode:hover .fav, .episode:focus-visible .fav { opacity: 1; }
+            @media (hover: none) { .fav { opacity: 1; } }
+            .list-item .fav {
+                position: static;
+                background: transparent;
+                color: var(--secondary-text-color);
+                border-radius: 8px;
+                opacity: 0.6;
+            }
+            .list-item .fav.is-fav { color: #ff5a7a; opacity: 1; }
+            .list-item:hover .fav { opacity: 1; }
+
+            .sel-badge {
+                position: absolute;
+                bottom: 6px;
+                right: 6px;
+                min-width: 26px;
+                height: 26px;
+                padding: 0 6px;
+                box-sizing: border-box;
+                border-radius: 999px;
+                background: var(--primary-color);
+                color: var(--text-primary-color, white);
+                font-weight: 700;
+                font-size: 0.85em;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                z-index: 3;
+            }
+            .list-thumb .sel-badge { bottom: -4px; right: -4px; min-width: 20px; height: 20px; font-size: 0.72em; }
+            .episode.is-selected { box-shadow: 0 0 0 2px var(--primary-color); }
+            .list-item.is-selected { background: color-mix(in srgb, var(--primary-color) 14%, transparent); }
 
             .empty, .loading {
                 text-align: center;
