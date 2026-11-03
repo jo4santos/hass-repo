@@ -81,6 +81,7 @@ showHeader: false
 | `hideBackground` | boolean | No | `false` | Remove card background, border, and padding for seamless integration |
 | `mode` | string | No | `basic` | Set to "manage" to enable delete buttons |
 | `showDueOnly` | boolean | No | `false` | Show only activities that are due |
+| `completedPeriod` | string | No | `day` | `day`: completed items show only if due today. `month`: completed items stay visible (green) while their due date is in the current month |
 | `soonHours` | number | No | `24` | Hours threshold for "due soon" styling |
 
 ## How It Works

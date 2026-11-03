@@ -5,7 +5,7 @@ import {
     repeat,
 } from "https://cdn.jsdelivr.net/gh/lit/dist@2/all/lit-all.min.js";
 
-// Daily Activities Card v2.5.3 - Large coloured icon, no background
+// Daily Activities Card v2.6.0 - Large coloured icon, no background; completedPeriod option
 
 export const utils = {
     _formatTimeAgo: (date) => {
@@ -92,6 +92,9 @@ class DailyActivitiesCard extends LitElement {
         // Filtering
         this._config.showDueOnly   = config.showDueOnly   ?? false;
         this._config.showCompleted = config.showCompleted ?? true;
+        // completedPeriod: 'day' (default) = completed items shown only if due today;
+        // 'month' = completed items shown while their due date is in the current month
+        this._config.completedPeriod = config.completedPeriod ?? "day";
         this._config.splitPending  = config.splitPending  ?? false;
 
         // Item icons
@@ -429,8 +432,11 @@ class DailyActivitiesCard extends LitElement {
                 // Normal mode: show today's relevant tasks
                 // 1. Incomplete with no due → always show
                 if (!a.dueDateStr) return a.status === "needs_action";
-                // 2. Completed → only if due = today
-                if (a.status === "completed") return a.dueDateStr === todayStr;
+                // 2. Completed → only if due = today (or due in current month when completedPeriod = 'month')
+                if (a.status === "completed")
+                    return this._config.completedPeriod === "month"
+                        ? a.dueDateStr.slice(0, 7) === todayStr.slice(0, 7)
+                        : a.dueDateStr === todayStr;
                 // 3. Pending → due today or overdue
                 return a.dueDateStr <= todayStr;
             });
@@ -1039,6 +1045,17 @@ class DailyActivitiesCardEditor extends LitElement {
                     { name: "hideBackground", selector: { boolean: {} } },
                     { name: "showDueOnly",    selector: { boolean: {} } },
                     { name: "showCompleted",  selector: { boolean: {} } },
+                    {
+                        name: "completedPeriod",
+                        selector: {
+                            select: {
+                                options: [
+                                    { label: "Due today only", value: "day" },
+                                    { label: "Due this month", value: "month" },
+                                ],
+                            },
+                        },
+                    },
                     { name: "splitPending",   selector: { boolean: {} } },
                     { name: "defaultItemIcon", selector: { icon: {} } },
                     {
@@ -1075,6 +1092,7 @@ class DailyActivitiesCardEditor extends LitElement {
             hideBackground:       "Hide card background",
             showDueOnly:          "Show only due / overdue items",
             showCompleted:        "Show completed items",
+            completedPeriod:      "Keep completed items visible",
             splitPending:         "Split incomplete: yellow for due-today, red for overdue",
             defaultItemIcon:      "Default item icon",
             iconField:            "Icon source",
