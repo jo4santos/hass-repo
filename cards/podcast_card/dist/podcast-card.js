@@ -1,8 +1,9 @@
-// Podcast Card v1.5.0 — grid/list of podcast episodes loaded from a JSON manifest.
+// Podcast Card v1.6.0 — grid/list of podcast episodes loaded from a JSON manifest.
 // Plays via Music Assistant (music_assistant.play_media) using the absolute URL.
 // v1.5.0: multi-select (ordered playback / queue) and per-user favourites.
+// v1.6.0: "A seguir" strip showing the next queued episode (+N more), via music_assistant.get_queue.
 
-const CARD_VERSION = "1.5.0";
+const CARD_VERSION = "1.6.0";
 
 const SORT_OPTIONS = [
     { value: "title", icon: "mdi:sort-alphabetical-ascending", label: "Título" },
@@ -26,6 +27,9 @@ class PodcastCard extends HTMLElement {
         this._favs = new Set();
         this._favOnly = false;
         this._favsRequested = false;
+        this._queue = null;
+        this._queueSeq = 0;
+        this._lastCid = null;
 
         // HA listens for keyboard shortcuts (e/c/m/d) on window. We register on window
         // in capture phase so we run before any bubble/listener HA has, and we also register
@@ -107,6 +111,11 @@ class PodcastCard extends HTMLElement {
         const detected = this._detectCurrent();
         const mp = hass.states[this._config.media_player];
         const playState = mp?.state || "unknown";
+        const cid = mp?.attributes?.media_content_id || "";
+        if (cid !== this._lastCid) {
+            this._lastCid = cid;
+            this._refreshQueue();
+        }
         if (
             detected !== this._currentNum ||
             playState !== this._lastPlayState
@@ -115,6 +124,96 @@ class PodcastCard extends HTMLElement {
             this._lastPlayState = playState;
             this._render();
         }
+    }
+
+    // ---- Queue ("A seguir") ----
+
+    _queueRefreshSoon() {
+        // The queue changes a moment after play_media returns.
+        setTimeout(() => this._refreshQueue(), 1200);
+    }
+
+    async _refreshQueue() {
+        if (!this._hass || !this._config || !this._episodes) return;
+        const seq = ++this._queueSeq;
+        let info = null;
+        try {
+            const res = await this._hass.callWS({
+                type: "call_service",
+                domain: "music_assistant",
+                service: "get_queue",
+                target: { entity_id: this._config.media_player },
+                return_response: true,
+            });
+            info = res?.response?.[this._config.media_player] || null;
+        } catch (e) {
+            info = null;
+        }
+        if (seq !== this._queueSeq) return; // a newer request superseded this one
+        this._queue = this._parseQueue(info);
+        this._updateNext();
+    }
+
+    _matchEpisode(item) {
+        if (!item) return null;
+        let blob = "";
+        try {
+            blob = JSON.stringify(item);
+        } catch (e) {
+            blob = "";
+        }
+        let decoded = blob;
+        try {
+            decoded = decodeURIComponent(blob);
+        } catch (e) {
+            // keep raw
+        }
+        for (const ep of this._episodes) {
+            if (ep.audio_file && (blob.includes(ep.audio_file) || decoded.includes(ep.audio_file))) return ep;
+        }
+        const name = String(item.name || item.media_item?.name || "").trim().toLowerCase();
+        if (name) {
+            const ep = this._episodes.find((e) => (e.title || "").trim().toLowerCase() === name);
+            if (ep) return ep;
+        }
+        return null;
+    }
+
+    _parseQueue(info) {
+        if (!info || !info.next_item) return null;
+        const items = Number(info.items) || 0;
+        const idx = Number.isFinite(Number(info.current_index)) && info.current_index !== null
+            ? Number(info.current_index)
+            : 0;
+        const more = Math.max(0, items - idx - 2);
+        const ep = this._matchEpisode(info.next_item);
+        const title = ep?.title || info.next_item.name || info.next_item.media_item?.name || "";
+        if (!title) return null;
+        return { ep, title, more };
+    }
+
+    _renderNext() {
+        const q = this._queue;
+        if (!q) return "";
+        const img = q.ep
+            ? `<img class="next-img" src="${this._escape(this._imageUrl(q.ep))}" alt="">`
+            : `<div class="next-img placeholder"><ha-icon icon="mdi:music-note"></ha-icon></div>`;
+        return `
+            <div class="next">
+                ${img}
+                <div class="next-info">
+                    <div class="next-eyebrow"><ha-icon icon="mdi:skip-next"></ha-icon><span>A seguir</span></div>
+                    <div class="next-title">${this._escape(q.title)}</div>
+                </div>
+                ${q.more > 0 ? `<div class="next-more">+${q.more} na fila</div>` : ""}
+            </div>
+        `;
+    }
+
+    _updateNext() {
+        const slot = this.shadowRoot.querySelector(".next-slot");
+        if (!slot) return;
+        slot.innerHTML = this._renderNext();
     }
 
     _detectCurrent() {
@@ -140,6 +239,7 @@ class PodcastCard extends HTMLElement {
             this._episodes = data.episodes || [];
             this._currentNum = this._detectCurrent();
             this._render();
+            this._refreshQueue();
         } catch (e) {
             this._error = e.message;
             this._render();
@@ -165,6 +265,7 @@ class PodcastCard extends HTMLElement {
         });
         this._updateHeader();
         this._updateScrollerHighlight();
+        this._queueRefreshSoon();
     }
 
     _enqueueNext(ep) {
@@ -175,6 +276,7 @@ class PodcastCard extends HTMLElement {
             media_type: "track",
             enqueue: "next",
         });
+        this._queueRefreshSoon();
     }
 
     // ---- Favourites (stored per HA user via frontend user data, localStorage fallback) ----
@@ -276,6 +378,7 @@ class PodcastCard extends HTMLElement {
         this._updateActionsState();
         this._updateScroller();
         this._updateSelBar();
+        this._queueRefreshSoon();
     }
 
     _filtered() {
@@ -371,6 +474,7 @@ class PodcastCard extends HTMLElement {
         const filtered = this._filtered();
         this.shadowRoot.innerHTML = this._wrap(`
             <div class="header-slot">${this._renderCurrent()}</div>
+            <div class="next-slot">${this._renderNext()}</div>
             ${this._renderActions(filtered.length)}
             <div class="selbar-slot"></div>
             <div class="scroller">${this._renderScrollerInner(filtered)}</div>
@@ -750,6 +854,56 @@ class PodcastCard extends HTMLElement {
                 overflow: hidden;
             }
             .header-meta { font-size: 0.85em; color: var(--secondary-text-color); }
+
+            .next-slot:empty { display: none; }
+            .next {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                padding: 6px 8px;
+                border-radius: 12px;
+                background: var(--secondary-background-color, var(--card-background-color));
+            }
+            .next-img {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                object-fit: cover;
+                flex: 0 0 auto;
+            }
+            .next-img.placeholder {
+                background: var(--divider-color);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--secondary-text-color);
+            }
+            .next-img.placeholder ha-icon { --mdc-icon-size: 20px; }
+            .next-info { flex: 1; min-width: 0; }
+            .next-eyebrow {
+                font-size: 0.7em;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--secondary-text-color);
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .next-eyebrow ha-icon { --mdc-icon-size: 14px; }
+            .next-title {
+                font-size: 0.9em;
+                font-weight: 600;
+                color: var(--primary-text-color);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .next-more {
+                font-size: 0.78em;
+                font-weight: 600;
+                color: var(--primary-color);
+                white-space: nowrap;
+            }
 
             .actions { display: flex; gap: 8px; align-items: center; }
             .search {
