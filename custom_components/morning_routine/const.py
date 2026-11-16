@@ -228,6 +228,8 @@ DEFAULT_AI_ANNOUNCEMENT_PROMPT = (
     "- Varia as palavras de dia para dia; não repitas sempre a mesma fórmula.\n"
     "- Escreve os números por extenso para serem bem lidos em voz alta (dez minutos, dezoito graus).\n"
     "- Não uses emojis, markdown, listas, aspas nem títulos. Responde só com o texto a dizer.\n"
+    "- A tua resposta é o próprio anúncio, lido tal e qual: fala diretamente para as crianças. "
+    "Nunca digas que fizeste, enviaste ou vais fazer o anúncio, e não executes nenhuma ação.\n"
     "- Usa apenas os factos do JSON abaixo; nunca inventes nada que lá não esteja."
 )
 DEFAULT_REWARD_IMAGE_API_URL = "https://orchestron.tech/api/v1/ask"

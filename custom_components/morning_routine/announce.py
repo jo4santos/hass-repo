@@ -368,7 +368,10 @@ def build_prompt(instructions: str, facts: dict[str, Any]) -> str:
     facts_json = json.dumps(facts, ensure_ascii=False, separators=(",", ":"))
     return (
         f"{(instructions or '').strip()}\n\n"
-        f"Anúncio a fazer agora: {facts.get('tipo')}. {facts.get('objetivo')}\n"
+        "Tarefa: escreve apenas o texto do anúncio. Não o difundes tu, não chamas "
+        "nenhuma ferramenta e não confirmas nada: a tua resposta é lida tal e qual "
+        "nas colunas, por isso começa logo a falar para as crianças.\n"
+        f"Texto a escrever: {facts.get('tipo')}. {facts.get('objetivo')}\n"
         f"FACTOS (JSON): {facts_json}"
     )
 
@@ -448,6 +451,27 @@ def sanitize_answer(text: Any) -> str:
     return text
 
 
+# Answers where the agent talks ABOUT the announcement ("já fiz o anúncio nas
+# colunas...") instead of giving the text to say (v2.13.3)
+_META_ANSWER_RES = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\bj[áa] (fiz|anunciei|informei|avisei|enviei|transmiti|comuniquei|disse)\b",
+        r"\b(fiz|acabei de fazer|vou fazer|irei fazer|posso fazer|farei) (o|um|esse|este) an[úu]ncio\b",
+        r"\ban[úu]ncio (foi|est[áa]|j[áa] foi|j[áa] est[áa]) (feito|enviado|transmitido|realizado|efetuado)\b",
+        r"\ban[úu]ncio nas colunas\b",
+        r"\b(informando|avisando|informei|avisei)-(os|as|nos)\b",
+        r"^(claro|certo|ok|feito|combinado|com certeza|aqui est[áa]|aqui tens|segue)\b\s*[,.!:]",
+        r"\b(n[ãa]o consigo|n[ãa]o posso|n[ãa]o tenho acesso|como (um )?(modelo|assistente))\b",
+    )
+)
+
+
+def is_meta_answer(text: str) -> bool:
+    """True when the answer describes or confirms an action instead of being the announcement."""
+    return any(pattern.search(text) for pattern in _META_ANSWER_RES)
+
+
 def choose_message(
     answer: Any, fallback: str, max_length: int = MAX_ANSWER_LENGTH
 ) -> tuple[str, str, str]:
@@ -460,4 +484,6 @@ def choose_message(
         return fallback, "fallback", "empty answer"
     if len(cleaned) > max_length:
         return fallback, "fallback", f"answer too long ({len(cleaned)} chars)"
+    if is_meta_answer(cleaned):
+        return fallback, "fallback", "answer is not the announcement text"
     return cleaned, "ai", "ok"

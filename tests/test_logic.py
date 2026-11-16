@@ -405,6 +405,24 @@ class TestChooseMessage(unittest.TestCase):
             message, path, _ = ann.choose_message(answer, self.FALLBACK)
             self.assertEqual((message, path), (self.FALLBACK, "fallback"), answer)
 
+    def test_meta_answers_use_the_fallback(self):
+        # v2.13.3: the agent confirmed an action instead of giving the text
+        for answer in (
+            "Já fiz o anúncio nas colunas da casa informando-os que faltam 10 minutos para a saída.",
+            "O anúncio foi feito.",
+            "Claro! Faltam dez minutos para sair.",
+            "Vou fazer o anúncio agora.",
+            "Não consigo fazer anúncios.",
+        ):
+            message, path, _ = ann.choose_message(answer, self.FALLBACK)
+            self.assertEqual((message, path), (self.FALLBACK, "fallback"), answer)
+        for answer in (
+            "Faltam dez minutos para sair, meninos! Duarte, ainda te falta lavar os dentes.",
+            "Parabéns Leonor, já fizeste tudo! Ainda tens quinze minutos para brincar.",
+            "Está na hora de sair, vamos para a escola!",
+        ):
+            self.assertEqual(ann.choose_message(answer, self.FALLBACK)[1], "ai", answer)
+
     def test_overlong_answer_falls_back(self):
         message, path, reason = ann.choose_message("palavra " * 60, self.FALLBACK)
         self.assertEqual((message, path), (self.FALLBACK, "fallback"))
@@ -674,7 +692,7 @@ class TestTranslations(unittest.TestCase):
                 self.assertIn(key, steps["announcements"]["data"])
 
     def test_manifest_version(self):
-        self.assertEqual(self._load("manifest.json")["version"], "2.13.2")
+        self.assertEqual(self._load("manifest.json")["version"], "2.13.3")
 
 
 if __name__ == "__main__":
