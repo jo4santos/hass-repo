@@ -1,10 +1,10 @@
 import { LitElement, html, css } from "https://cdn.jsdelivr.net/gh/lit/dist@2/all/lit-all.min.js";
 
-// Morning Routine Card v2.11.1 - Optional "Jogos" button next to "Ver Recompensa", opening the games site in a full-screen frame
+// Morning Routine Card v2.11.2 - Photo preview shows the whole camera frame (no crop) in a larger dialog
 // v2.11.0 - Reward image generated from the photo, "medalha do dia" fallback and streak
 // (needs the Morning Routine integration v2.13.0+ for the new reward type and the streak; older versions keep working)
 
-const CARD_VERSION = "2.11.1";
+const CARD_VERSION = "2.11.2";
 
 // ---------------------------------------------------------------------------
 // Games: full-screen frame
@@ -989,6 +989,8 @@ class MorningRoutineCard extends LitElement {
                 // Wait for video to be ready (important for Android)
                 await new Promise((resolve) => {
                     video.onloadedmetadata = () => {
+                        // v2.11.2: reserve the real frame shape so the preview is the whole picture
+                        if (video.videoWidth && video.videoHeight) video.style.aspectRatio = video.videoWidth + ' / ' + video.videoHeight;
                         // console.log("[Camera] Video ready:", video.videoWidth, "x", video.videoHeight);
                         video.play().then(() => {
                             // console.log("[Camera] Video playing");
@@ -2977,10 +2979,12 @@ class MorningRoutineCard extends LitElement {
         /* Stable dialog sizes (v2.10.1): the <dialog> shrink-wraps its content, so percentage widths
            collapsed until the camera stream or the photo had loaded and then jumped. Size against the
            viewport instead and reserve the media area up front. */
-        .camera-modal, .history-modal { width: min(600px, 92vw); max-width: none; }
+        .history-modal { width: min(600px, 92vw); max-width: none; }
+        /* v2.11.2: wider camera dialog; the preview shows the whole camera frame (what the photo will contain), never a crop */
+        .camera-modal { width: min(900px, 94vw); max-width: none; max-height: 96vh; max-height: 96dvh; }
         .confirm-modal { width: min(500px, 92vw); max-width: none; }
         .reward-modal, .photo-modal { width: min(900px, 92vw); max-width: none; }
-        #camera-preview { display: block; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
+        #camera-preview { display: block; aspect-ratio: 4 / 3; object-fit: contain; background: #000; max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); }
         .audio-recorder-container { min-height: 280px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .photo-modal-content { min-height: min(60vh, 480px); box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
 
@@ -3098,7 +3102,7 @@ window.customCards.push({
 });
 
 console.info(
-    `%c MORNING-ROUTINE-CARD %c ${CARD_VERSION} - Games button with full-screen frame `,
+    `%c MORNING-ROUTINE-CARD %c ${CARD_VERSION} - Uncropped photo preview `,
     "color: white; font-weight: bold; background: #4CAF50",
     "color: white; font-weight: bold; background: #2196F3"
 );
