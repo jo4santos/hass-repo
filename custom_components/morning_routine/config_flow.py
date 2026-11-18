@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .google_drive_uploader import GoogleDriveUploader
+from .google_drive_uploader import GoogleDriveUploader, ensure_google_libs
 
 from .const import (
     DOMAIN,
@@ -697,6 +697,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is None:
             # First visit: generate auth URL and show form
             options = self._pending_options or {}
+            await self.hass.async_add_executor_job(ensure_google_libs)
             uploader = GoogleDriveUploader(self.hass)
             uploader._client_id = options.get(CONF_GDRIVE_CLIENT_ID)
             uploader._client_secret = options.get(CONF_GDRIVE_CLIENT_SECRET)

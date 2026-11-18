@@ -7,12 +7,38 @@ from datetime import datetime, timedelta
 from functools import partial
 from typing import Any
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from googleapiclient.errors import HttpError
+# The Google client libraries are imported on first use (see ensure_google_libs),
+# never at module import: a broken or incompatible google-auth install must only
+# disable the Drive upload, not stop the whole integration from loading.
+Request = None
+Credentials = None
+Flow = None
+build = None
+MediaFileUpload = None
+
+
+class HttpError(Exception):
+    """Placeholder until the Google libraries are loaded."""
+
+
+_GOOGLE_LOADED = False
+
+
+def ensure_google_libs() -> None:
+    """Import the Google client libraries (blocking; raises ImportError-like errors)."""
+    global _GOOGLE_LOADED, Request, Credentials, Flow, build, MediaFileUpload, HttpError
+    if _GOOGLE_LOADED:
+        return
+    from google.auth.transport.requests import Request as _Request
+    from google.oauth2.credentials import Credentials as _Credentials
+    from google_auth_oauthlib.flow import Flow as _Flow
+    from googleapiclient.discovery import build as _build
+    from googleapiclient.http import MediaFileUpload as _MediaFileUpload
+    from googleapiclient.errors import HttpError as _HttpError
+
+    Request, Credentials, Flow = _Request, _Credentials, _Flow
+    build, MediaFileUpload, HttpError = _build, _MediaFileUpload, _HttpError
+    _GOOGLE_LOADED = True
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -63,6 +89,9 @@ class GoogleDriveUploader:
         self._client_id = client_id
         self._client_secret = client_secret
         self._base_folder_id = folder_id
+
+        # Imports are blocking: do them once, off the event loop
+        await self.hass.async_add_executor_job(ensure_google_libs)
 
         # Load folder cache
         await self._load_folder_cache()
@@ -167,6 +196,7 @@ class GoogleDriveUploader:
         Returns:
             Authorization URL for user to visit
         """
+        ensure_google_libs()  # no-op once loaded
         if not self._client_id or not self._client_secret:
             raise ValueError("Client ID and secret not configured")
 
@@ -207,6 +237,7 @@ class GoogleDriveUploader:
             True if authorization successful
         """
         try:
+            await self.hass.async_add_executor_job(ensure_google_libs)
             # Recreate flow if needed (in case of restart)
             if not hasattr(self, "_flow") or self._flow is None:
                 if not self._client_id or not self._client_secret:

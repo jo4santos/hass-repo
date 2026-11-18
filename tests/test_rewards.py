@@ -1662,6 +1662,7 @@ def _load_config_flow():
     sys.modules["homeassistant"].config_entries = config_entries
     uploader = types.ModuleType(f"{PACKAGE}.google_drive_uploader")
     uploader.GoogleDriveUploader = object
+    uploader.ensure_google_libs = lambda: None
     sys.modules.setdefault(f"{PACKAGE}.google_drive_uploader", uploader)
 
     spec = importlib.util.spec_from_file_location(
