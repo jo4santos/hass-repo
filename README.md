@@ -27,6 +27,12 @@ Custom Home Assistant add-ons, integrations, Lovelace cards and themes. Each com
 | **Toggle Confirmation Card** | [`hass-repo-toggle-card`](https://github.com/jo4santos/hass-repo-toggle-card) | Inline red/green confirm/cancel buttons that replace modal confirmation dialogs. |
 | **Podcast Card** | [`hass-repo-card-podcast`](https://github.com/jo4santos/hass-repo-card-podcast) | Grid/list of podcast episodes loaded from a JSON manifest; plays via Music Assistant. |
 
+## 🏠 Casa Cards (this repo, HACS / Marketplace)
+
+The cards of the house dashboards (`casa-*-card`) live in [`dist/`](./dist), one file per card, and are installed straight from **this** repo: add `https://github.com/jo4santos/hass-repo` as a custom repository of type *Dashboard* (plugin). The only registered resource is `casa-cards.js`, which loads the other files with a content hash in the URL, so a browser only re-downloads the cards that changed.
+
+To publish a change: edit the card in `dist/`, run `python3 scripts/build-casa-cards.py X.Y.Z`, commit, push to `main` and create the release `casa-cards-vX.Y.Z`. Then update it in Home Assistant (Settings → Marketplace). A card that proves useful on its own can later be promoted to a dedicated repo like the ones below.
+
 ## 🎨 Themes (HACS)
 
 | Theme | HACS repo | Description |
@@ -56,6 +62,8 @@ addons/         — Home Assistant add-ons (served via the repository URL above)
 cards/          — Custom Lovelace cards (one subtree per card)
 integrations/   — Custom integrations (custom_components)
 themes/         — Custom themes
+dist/           — Casa dashboard cards, installed from this repo (entry point: casa-cards.js)
+scripts/        — build-casa-cards.py regenerates dist/casa-cards.js
 update-subtrees.sh  — manual fallback: pushes every subtree to its dedicated HACS repo
 .github/workflows/sync-subtrees.yaml — automatic subtree push + HACS releases
 ```
