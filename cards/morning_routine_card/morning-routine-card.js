@@ -1,6 +1,203 @@
 import { LitElement, html, css } from "https://cdn.jsdelivr.net/gh/lit/dist@2/all/lit-all.min.js";
 
-// Morning Routine Card v2.9.3 - Use <dialog> for modals to fix positioning inside Bubble Card popups
+// Morning Routine Card v2.11.2 - Photo preview shows the whole camera frame (no crop) in a larger dialog
+// v2.11.0 - Reward image generated from the photo, "medalha do dia" fallback and streak
+// (needs the Morning Routine integration v2.13.0+ for the new reward type and the streak; older versions keep working)
+
+const CARD_VERSION = "2.11.2";
+
+// ---------------------------------------------------------------------------
+// Games: full-screen frame
+// The overlay lives in document.body (not in the card's shadow DOM) so it escapes
+// the card, the Bubble Card pop-up and any transformed / overflow-hidden ancestor.
+// Only one overlay exists at a time (module-level singleton).
+// ---------------------------------------------------------------------------
+const GAMES_LOAD_HINT_MS = 8000;
+let activeGamesOverlay = null;
+
+const GAMES_OVERLAY_CSS = `
+.mrc-games-overlay {
+    position: fixed; inset: 0; top: 0; left: 0;
+    width: 100vw; height: 100vh; height: 100dvh;
+    margin: 0; padding: 0; border: 0; box-sizing: border-box;
+    z-index: 2147483647;
+    background: #11111b; color: #f4f4f8;
+    font-family: var(--paper-font-body1_-_font-family, Roboto, "Noto Sans", Arial, sans-serif);
+    overflow: hidden; overscroll-behavior: contain;
+}
+.mrc-games-overlay:fullscreen { width: 100%; height: 100%; }
+.mrc-games-overlay:-webkit-full-screen { width: 100%; height: 100%; }
+.mrc-games-overlay::backdrop { background: #11111b; }
+.mrc-games-loading {
+    position: absolute; inset: 0; z-index: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 24px; text-align: center; box-sizing: border-box;
+}
+.mrc-games-loading p { margin: 0; font-size: 20px; font-weight: 500; }
+.mrc-games-hint {
+    position: absolute; z-index: 2; left: 50%; transform: translateX(-50%);
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    max-width: calc(100% - 24px); box-sizing: border-box;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px;
+    padding: 8px 8px 8px 16px; border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(17, 17, 27, 0.88); color: #f4f4f8;
+}
+.mrc-games-hint[hidden], .mrc-games-overlay.loaded .mrc-games-hint { display: none; }
+.mrc-games-hint p { margin: 0; font-size: 14px; }
+.mrc-games-newwindow {
+    min-height: 44px; padding: 8px 18px; border: 0; border-radius: 999px; white-space: nowrap;
+    background: #8aadf4; color: #181926; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.mrc-games-frame {
+    position: absolute; inset: 0; z-index: 1;
+    width: 100%; height: 100%; border: 0; display: block; background: transparent;
+}
+.mrc-games-overlay.loaded .mrc-games-frame { background: #fff; }
+.mrc-games-overlay.loaded .mrc-games-loading { display: none; }
+.mrc-games-close {
+    position: absolute; z-index: 2;
+    top: max(8px, env(safe-area-inset-top, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+    width: 44px; height: 44px; padding: 0; margin: 0; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.55); border-radius: 50%;
+    background: rgba(17, 17, 27, 0.72); color: #fff; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.mrc-games-close:hover { background: rgba(17, 17, 27, 0.9); }
+.mrc-games-close:focus-visible, .mrc-games-newwindow:focus-visible { outline: 3px solid #8aadf4; outline-offset: 2px; }
+.mrc-games-close svg { width: 22px; height: 22px; display: block; pointer-events: none; }
+`;
+
+// Only http(s) pages can be framed (relative URLs are resolved against the dashboard)
+function normalizeGamesUrl(raw) {
+    if (typeof raw !== "string" || !raw.trim()) return null;
+    try {
+        const url = new URL(raw.trim(), window.location.href);
+        return (url.protocol === "https:" || url.protocol === "http:") ? url.href : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function closeGamesOverlay({ restoreFocus = true } = {}) {
+    const active = activeGamesOverlay;
+    if (!active) return;
+    activeGamesOverlay = null;
+    clearTimeout(active.hintTimer);
+    document.removeEventListener("keydown", active.onKeydown, true);
+    // Leaving the overlay also leaves the browser full screen (if we are the full-screen element)
+    try {
+        const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+        if (fsEl === active.overlay) {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            const result = exit && exit.call(document);
+            if (result && result.catch) result.catch(() => {});
+        }
+    } catch (e) { /* ignore */ }
+    // Removing the iframe stops the game (and its sound)
+    active.iframe.remove();
+    active.overlay.remove();
+    document.body.style.overflow = active.prevBodyOverflow;
+    document.documentElement.style.overflow = active.prevHtmlOverflow;
+    if (restoreFocus) {
+        const target = active.getFocusTarget && active.getFocusTarget();
+        if (target && target.isConnected) {
+            try { target.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+        }
+    }
+}
+
+function openGamesOverlay({ url, title, owner, getFocusTarget }) {
+    closeGamesOverlay({ restoreFocus: false }); // only one at a time
+
+    const overlay = document.createElement("div");
+    overlay.className = "mrc-games-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", title);
+
+    const style = document.createElement("style");
+    style.textContent = GAMES_OVERLAY_CSS;
+
+    const loading = document.createElement("div");
+    loading.className = "mrc-games-loading";
+    const loadingText = document.createElement("p");
+    loadingText.setAttribute("role", "status");
+    loadingText.textContent = "A abrir os jogos…";
+    const hint = document.createElement("div");
+    hint.className = "mrc-games-hint";
+    hint.hidden = true;
+    const hintText = document.createElement("p");
+    hintText.textContent = "Está a demorar?";
+    const newWindow = document.createElement("button");
+    newWindow.type = "button";
+    newWindow.className = "mrc-games-newwindow";
+    newWindow.textContent = "Abrir numa nova janela";
+    newWindow.addEventListener("click", () => window.open(url, "_blank", "noopener"));
+    hint.append(hintText, newWindow);
+    loading.append(loadingText);
+
+    const iframe = document.createElement("iframe");
+    iframe.className = "mrc-games-frame";
+    iframe.title = title;
+    iframe.setAttribute("allow", "fullscreen; autoplay; gamepad");
+    iframe.setAttribute("allowfullscreen", "");
+    iframe.setAttribute("referrerpolicy", "no-referrer");
+    // src before the frame is attached: an empty frame would fire "load" for about:blank
+    iframe.src = url;
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "mrc-games-close";
+    close.setAttribute("aria-label", "Fechar jogos");
+    close.title = "Fechar jogos";
+    close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>';
+    close.addEventListener("click", () => closeGamesOverlay());
+
+    const onKeydown = (e) => {
+        if (e.key !== "Escape") return;
+        // Only reaches us when focus is in the dashboard document (not inside the game)
+        e.preventDefault();
+        e.stopPropagation();
+        closeGamesOverlay();
+    };
+
+    const active = {
+        overlay, iframe, owner, getFocusTarget, onKeydown,
+        prevBodyOverflow: document.body.style.overflow,
+        prevHtmlOverflow: document.documentElement.style.overflow,
+        hintTimer: null,
+    };
+
+    iframe.addEventListener("load", () => {
+        if (activeGamesOverlay !== active) return;
+        clearTimeout(active.hintTimer);
+        overlay.classList.add("loaded");
+    });
+    // A blocked embed cannot be detected; after a while offer the way out
+    // (a small bar above the frame, so it can be used whatever the frame shows)
+    active.hintTimer = setTimeout(() => {
+        if (activeGamesOverlay === active && !overlay.classList.contains("loaded")) hint.hidden = false;
+    }, GAMES_LOAD_HINT_MS);
+
+    overlay.append(style, loading, iframe, hint, close);
+    activeGamesOverlay = active;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", onKeydown, true);
+
+    // Real full screen when the browser allows it (we are inside the tap); the fixed overlay is the fallback.
+    // Leaving the browser full screen (Esc / system gesture) does not close the overlay.
+    try {
+        const request = overlay.requestFullscreen || overlay.webkitRequestFullscreen;
+        const result = request && request.call(overlay);
+        if (result && result.catch) result.catch(() => {});
+    } catch (e) { /* ignore */ }
+
+    try { close.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    return active;
+}
 
 class MorningRoutineCard extends LitElement {
     static properties = {
@@ -15,6 +212,8 @@ class MorningRoutineCard extends LitElement {
         _showReward: { type: Boolean, state: true },
         _rewardChild: { type: Object, state: true },
         _currentRewardQuote: { type: String, state: true },
+        _rewardZoom: { type: Boolean, state: true },
+        _rewardImageFailedUrl: { type: String, state: true },
         _isRecording: { type: Boolean, state: true },
         _recordingTime: { type: Number, state: true },
         _photoChild: { type: Object, state: true },
@@ -46,6 +245,8 @@ class MorningRoutineCard extends LitElement {
         this._rewardChild = null;
         this._photoChild = null;
         this._currentRewardQuote = null;
+        this._rewardZoom = false;
+        this._rewardImageFailedUrl = null;
         this._isRecording = false;
         this._recordingTime = 0;
         this._mediaRecorder = null;
@@ -100,6 +301,7 @@ class MorningRoutineCard extends LitElement {
         this._config.layout = config.layout || "horizontal";
         this._config.show_progress = config.show_progress !== false;
         this._config.compact = config.compact || false;
+        this._games = this._parseGamesConfig(config);
 
         console.log("Morning Routine Card configured for entities:", config.children.map(c => c.entity));
     }
@@ -109,6 +311,44 @@ class MorningRoutineCard extends LitElement {
         if (this._timerInterval) {
             clearInterval(this._timerInterval);
         }
+        // The games frame lives in document.body: do not leave it behind
+        if (activeGamesOverlay && activeGamesOverlay.owner === this) {
+            closeGamesOverlay({ restoreFocus: false });
+        }
+    }
+
+    // Optional: games: { url, label, icon } (or games: "<url>" / games_url: "<url>")
+    _parseGamesConfig(config) {
+        const games = config.games;
+        const raw = typeof games === 'string' ? games : (games && games.url) || config.games_url;
+        if (!raw) return null;
+        const url = normalizeGamesUrl(raw);
+        if (!url) {
+            console.warn("Morning Routine Card: 'games' needs an http(s) url, ignoring:", raw);
+            return null;
+        }
+        const options = games && typeof games === 'object' ? games : {};
+        return {
+            url,
+            label: (typeof options.label === 'string' && options.label.trim()) || 'Jogos',
+            icon: (typeof options.icon === 'string' && options.icon.trim()) || 'mdi:gamepad-variant-outline',
+        };
+    }
+
+    _openGames(e, child) {
+        if (!this._games) return;
+        const button = e?.currentTarget || null;
+        const entity = child?.entity;
+        openGamesOverlay({
+            url: this._games.url,
+            title: this._games.label,
+            owner: this,
+            getFocusTarget: () => {
+                if (button && button.isConnected) return button;
+                const buttons = [...(this.shadowRoot?.querySelectorAll('.games-button') || [])];
+                return buttons.find(b => b.dataset.entity === entity) || buttons[0] || null;
+            },
+        });
     }
 
     updated(changedProperties) {
@@ -157,9 +397,9 @@ class MorningRoutineCard extends LitElement {
         // Green: more than 30 minutes (1800s)
         // Yellow: 15-30 minutes (900-1800s)
         // Red: less than 15 minutes (900s)
-        if (totalSeconds > 1800) return '#4CAF50'; // Green
-        if (totalSeconds > 900) return '#FFC107'; // Yellow
-        return '#F44336'; // Red
+        if (totalSeconds > 1800) return '#a6da95'; // Green
+        if (totalSeconds > 900) return '#eed49f'; // Yellow
+        return '#ed8796'; // Red
     }
 
     shouldUpdate(changedProps) {
@@ -244,6 +484,12 @@ class MorningRoutineCard extends LitElement {
                 audio_recording: entity.attributes.audio_recording,
                 reward_image: entity.attributes.reward_image,
                 reward_video_id: entity.attributes.reward_video_id,
+                // Integration v2.13.0+ (undefined with older versions: the card then behaves as before)
+                reward_type: entity.attributes.reward_type,
+                reward_image_status: entity.attributes.reward_image_status,
+                daily_phrase: entity.attributes.daily_phrase,
+                streak: entity.attributes.streak,
+                best_streak: entity.attributes.best_streak,
                 all_complete: entity.attributes.all_complete || false,
                 error: false,
             };
@@ -380,18 +626,9 @@ class MorningRoutineCard extends LitElement {
             return icons[condition] || 'mdi:weather-cloudy';
         };
 
-        // Get temperature color
-        const getTempColor = (temp) => {
-            if (temp < 10) return '#2196F3'; // Blue - cold
-            if (temp < 15) return '#00BCD4'; // Cyan - cool
-            if (temp < 20) return '#4CAF50'; // Green - mild
-            if (temp < 25) return '#FFC107'; // Yellow - pleasant
-            return '#FF5722'; // Orange-red - hot
-        };
 
         const tempDescription = getTempDescription(temperature);
         const weatherIcon = getWeatherIcon(condition);
-        const tempColor = getTempColor(temperature);
 
         // Translate condition
         const conditionTranslations = {
@@ -413,20 +650,8 @@ class MorningRoutineCard extends LitElement {
         };
         const conditionText = conditionTranslations[condition] || condition;
 
-        // Determine text color based on background (for contrast)
-        // Light backgrounds (#FFC107, #00BCD4) = black text
-        // Dark backgrounds (#2196F3, #4CAF50, #FF5722) = white text
-        const getTextColor = (bgColor) => {
-            if (bgColor === '#FFC107' || bgColor === '#00BCD4') {
-                return 'rgba(0, 0, 0, 0.87)'; // Dark text
-            }
-            return 'white'; // Light text
-        };
-
-        const textColor = getTextColor(tempColor);
-
         return html`
-            <div class="weather-section" style="background-color: ${tempColor}; color: ${textColor};">
+            <div class="weather-section">
                 <ha-icon icon="${weatherIcon}"></ha-icon>
                 <div class="weather-text">
                     <div class="weather-temp">${this._maxTemperature != null ? `máx. ${temperature}°C` : `${temperature}°C`} · ${conditionText}</div>
@@ -450,7 +675,7 @@ class MorningRoutineCard extends LitElement {
         const hasAudio = child.audio_recording;
 
         // Build style without photo background
-        let sectionStyle = `--child-color: ${child.color || '#4CAF50'};`;
+        let sectionStyle = `--child-color: ${child.color || '#8aadf4'};`;
 
         return html`
             <div class="child-section" style="${sectionStyle}">
@@ -461,11 +686,18 @@ class MorningRoutineCard extends LitElement {
                 </div>
 
                 ${allComplete ? html`
-                    <div class="button-container">
+                    <div class="button-container ${this._games ? 'has-games' : ''}">
                         <button class="reward-button" @click=${() => this._showRewardModal(child)}>
                             <ha-icon icon="mdi:trophy"></ha-icon>
                             <span>Ver Recompensa</span>
                         </button>
+                        ${this._games ? html`
+                            <button class="reward-button games-button" data-entity="${child.entity}"
+                                    @click=${(e) => this._openGames(e, child)}>
+                                <ha-icon icon="${this._games.icon}"></ha-icon>
+                                <span>${this._games.label}</span>
+                            </button>
+                        ` : ''}
                     </div>
                 ` : ''}
             </div>
@@ -482,6 +714,7 @@ class MorningRoutineCard extends LitElement {
                         @click=${() => this._showHistoryModal(child)}>
                         <ha-icon icon="mdi:history"></ha-icon>
                     </mwc-icon-button>
+                    ${this._renderStreakChip(child)}
                 </div>
                 <div class="header-right">
                     <mwc-icon-button
@@ -493,7 +726,7 @@ class MorningRoutineCard extends LitElement {
                         <svg class="progress-ring" width="60" height="60">
                             <circle
                                 class="progress-ring-bg"
-                                stroke="#e0e0e0"
+                                stroke="var(--card-background-color, #e0e0e0)"
                                 stroke-width="4"
                                 fill="transparent"
                                 r="26"
@@ -502,7 +735,7 @@ class MorningRoutineCard extends LitElement {
                             ></circle>
                             <circle
                                 class="progress-ring-circle"
-                                stroke="${child.color || '#4CAF50'}"
+                                stroke="${child.color || '#8aadf4'}"
                                 stroke-width="4"
                                 fill="transparent"
                                 r="26"
@@ -516,6 +749,33 @@ class MorningRoutineCard extends LitElement {
                     </div>
                 </div>
             </div>
+        `;
+    }
+
+    _getStreak(child) {
+        const streak = Number(child?.streak);
+        return Number.isFinite(streak) && streak > 0 ? Math.floor(streak) : 0;
+    }
+
+    _getBestStreak(child) {
+        const best = Number(child?.best_streak);
+        return Math.max(Number.isFinite(best) && best > 0 ? Math.floor(best) : 0, this._getStreak(child));
+    }
+
+    _formatStreak(days) {
+        return days === 1 ? '1 dia seguido' : `${days} dias seguidos`;
+    }
+
+    _renderStreakChip(child) {
+        // Discreet: only from the second consecutive day on
+        const streak = this._getStreak(child);
+        if (streak < 2) return '';
+        const label = `${this._formatStreak(streak)} com a rotina completa`;
+        return html`
+            <span class="streak-chip" title="${label}" aria-label="${label}" role="img">
+                <ha-icon icon="mdi:fire"></ha-icon>
+                <span>${streak}</span>
+            </span>
         `;
     }
 
@@ -729,6 +989,8 @@ class MorningRoutineCard extends LitElement {
                 // Wait for video to be ready (important for Android)
                 await new Promise((resolve) => {
                     video.onloadedmetadata = () => {
+                        // v2.11.2: reserve the real frame shape so the preview is the whole picture
+                        if (video.videoWidth && video.videoHeight) video.style.aspectRatio = video.videoWidth + ' / ' + video.videoHeight;
                         // console.log("[Camera] Video ready:", video.videoWidth, "x", video.videoHeight);
                         video.play().then(() => {
                             // console.log("[Camera] Video playing");
@@ -1040,6 +1302,8 @@ class MorningRoutineCard extends LitElement {
         this._rewardChild = child;
         // Pick a random quote
         this._currentRewardQuote = this._rewardQuotes[Math.floor(Math.random() * this._rewardQuotes.length)];
+        this._rewardZoom = false;
+        this._rewardImageFailedUrl = null;
         this._showReward = true;
     }
 
@@ -1047,6 +1311,52 @@ class MorningRoutineCard extends LitElement {
         this._showReward = false;
         this._rewardChild = null;
         this._currentRewardQuote = null;
+        this._rewardZoom = false;
+        this._rewardImageFailedUrl = null;
+    }
+
+    _toggleRewardZoom(e) {
+        e?.stopPropagation?.();
+        this._rewardZoom = !this._rewardZoom;
+    }
+
+    _onRewardImageError(url) {
+        // The file is gone or cannot be loaded: fall back to the "medalha do dia"
+        this._rewardImageFailedUrl = url;
+        this._rewardZoom = false;
+    }
+
+    _getLiveChild(child) {
+        // The modal keeps the child it was opened for; always render its latest state,
+        // so the reward updates by itself when the sensor changes (generating -> ready)
+        if (!child) return null;
+        return this._children.find(c => c.entity === child.entity && !c.error) || child;
+    }
+
+    _getRewardImageUrl(child) {
+        const image = child?.reward_image;
+        if (!image || typeof image !== 'string') return null;
+        // v2.13.0+ gives a ready /local URL (with a cache-busting query); older values are file paths
+        if (image.startsWith('/local/morning_routine_photos/')) return image;
+        return `/local/morning_routine_photos/${this._getFilename(image)}`;
+    }
+
+    _getRewardView(child) {
+        // Which reward to show. Only the reward type "image generated from the photo"
+        // (integration v2.13.0+) uses the new views; everything else is unchanged.
+        if (child?.reward_type !== 'ai_image_from_photo') return 'legacy';
+        const url = this._getRewardImageUrl(child);
+        if (child.reward_image_status === 'ready' && url && url !== this._rewardImageFailedUrl) return 'image';
+        if (child.reward_image_status === 'generating') return 'waiting';
+        return 'medal';  // failed, no photo, no image, or image file missing
+    }
+
+    _getTodayLabel() {
+        try {
+            return new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
+        } catch (e) {
+            return '';
+        }
     }
 
     _getChildArticle(childName) {
@@ -1140,13 +1450,17 @@ class MorningRoutineCard extends LitElement {
     _renderRewardModal() {
         if (!this._showReward || !this._rewardChild) return html``;
 
-        const hasVideo = this._rewardChild.reward_video_id;
-        const hasAIImage = this._rewardChild.reward_image;
+        const child = this._getLiveChild(this._rewardChild);
+        const view = this._getRewardView(child);
+        if (view !== 'legacy') return this._renderPhotoRewardModal(child, view);
+
+        const hasVideo = child.reward_video_id;
+        const hasAIImage = child.reward_image;
 
         return html`
             <div class="reward-modal">
                 <div class="reward-modal-header">
-                        <h2>🎉 Recompensa d${this._getChildArticle(this._rewardChild.name).toLowerCase()} ${this._rewardChild.name}! 🎉</h2>
+                        <h2>🎉 Recompensa d${this._getChildArticle(child.name).toLowerCase()} ${child.name}! 🎉</h2>
                         <mwc-icon-button @click=${this._closeRewardModal}>
                             <ha-icon icon="mdi:close"></ha-icon>
                         </mwc-icon-button>
@@ -1155,14 +1469,14 @@ class MorningRoutineCard extends LitElement {
                         ${hasVideo ? html`
                             <div class="video-reward-container">
                                 <iframe
-                                    src="https://www.youtube.com/embed/${this._rewardChild.reward_video_id}?autoplay=1"
+                                    src="https://www.youtube.com/embed/${child.reward_video_id}?autoplay=1"
                                     frameborder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowfullscreen
                                 ></iframe>
                             </div>
                         ` : hasAIImage ? html`
-                            <img src="/local/morning_routine_photos/${this._getFilename(this._rewardChild.reward_image)}"
+                            <img src="/local/morning_routine_photos/${this._getFilename(child.reward_image)}"
                                  alt="Imagem de Recompensa" />
                         ` : html`
                             <div class="reward-quote-container">
@@ -1174,6 +1488,132 @@ class MorningRoutineCard extends LitElement {
                             Completaste a rotina matinal! Parabéns! 🎊
                         </p>
                     </div>
+            </div>
+        `;
+    }
+
+    // Reward type "image generated from the photo": generated image, waiting state or "medalha do dia"
+    _renderPhotoRewardModal(child, view) {
+        const article = this._getChildArticle(child.name).toLowerCase();
+
+        return html`
+            <div class="reward-modal photo-reward" style="--child-color: ${child.color || '#8aadf4'};">
+                <div class="reward-modal-header">
+                    <h2>Recompensa d${article} ${child.name}</h2>
+                    <mwc-icon-button @click=${this._closeRewardModal} aria-label="Fechar">
+                        <ha-icon icon="mdi:close"></ha-icon>
+                    </mwc-icon-button>
+                </div>
+                <div class="reward-modal-content photo-reward-content" aria-live="polite">
+                    ${view === 'image' ? this._renderRewardImage(child)
+                        : view === 'waiting' ? this._renderRewardWaiting(child)
+                        : this._renderRewardMedal(child)}
+                </div>
+            </div>
+            ${view === 'image' && this._rewardZoom ? this._renderRewardZoom(child) : ''}
+        `;
+    }
+
+    _renderRewardImage(child) {
+        const url = this._getRewardImageUrl(child);
+        const article = this._getChildArticle(child.name).toLowerCase();
+        const alt = `Imagem de recompensa d${article} ${child.name}, desenhada a partir da fotografia de hoje`;
+        const streak = this._getStreak(child);
+
+        return html`
+            <button class="reward-image-button" @click=${this._toggleRewardZoom}
+                    aria-label="Ver a imagem em ecrã inteiro">
+                <img class="reward-image" src="${url}" alt="${alt}"
+                     @error=${() => this._onRewardImageError(url)} />
+                <span class="reward-image-zoom-hint" aria-hidden="true">
+                    <ha-icon icon="mdi:fullscreen"></ha-icon>
+                </span>
+            </button>
+            <div class="reward-caption">
+                <span class="reward-caption-name">${child.name}</span>
+                <span class="reward-caption-date">${this._getTodayLabel()}</span>
+                ${streak > 0 ? html`
+                    <span class="reward-caption-streak">
+                        <ha-icon icon="mdi:fire"></ha-icon>
+                        <span>${this._formatStreak(streak)}</span>
+                    </span>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    _renderRewardZoom(child) {
+        const url = this._getRewardImageUrl(child);
+        return html`
+            <div class="reward-zoom" role="button" tabindex="0" aria-label="Fechar o ecrã inteiro"
+                 @click=${this._toggleRewardZoom}
+                 @keydown=${(e) => { if (e.key === 'Enter' || e.key === ' ') this._toggleRewardZoom(e); }}>
+                <img src="${url}" alt="Imagem de recompensa de ${child.name} em ecrã inteiro" />
+                <span class="reward-zoom-close" aria-hidden="true">
+                    <ha-icon icon="mdi:close"></ha-icon>
+                </span>
+            </div>
+        `;
+    }
+
+    _renderRewardWaiting(child) {
+        return html`
+            <div class="reward-waiting">
+                <div class="reward-waiting-art" aria-hidden="true">
+                    <span class="reward-waiting-ring"></span>
+                    <ha-icon icon="mdi:palette"></ha-icon>
+                </div>
+                <p class="reward-waiting-title">A tua imagem está quase pronta…</p>
+                <p class="reward-waiting-text">
+                    Está a ser desenhada a partir da tua fotografia. Aparece aqui sozinha, não precisas de fazer nada.
+                </p>
+            </div>
+        `;
+    }
+
+    _renderRewardMedal(child) {
+        const streak = this._getStreak(child);
+        const best = this._getBestStreak(child);
+        const phrase = (child.daily_phrase || '').toString().trim();
+        const isRecord = streak >= 2 && streak >= best;
+        // Fixed pseudo-random confetti (no layout shift between renders)
+        const confetti = [6, 14, 23, 31, 38, 47, 55, 62, 70, 78, 86, 94];
+
+        return html`
+            <div class="reward-medal-card">
+                <div class="reward-confetti" aria-hidden="true">
+                    ${confetti.map((left, i) => html`
+                        <span class="confetti-piece c${i % 4}"
+                              style="left: ${left}%; animation-delay: ${(i * 0.37) % 2.6}s; animation-duration: ${3.2 + (i % 5) * 0.45}s;"></span>
+                    `)}
+                </div>
+                <p class="reward-medal-kicker">Medalha do dia</p>
+                <div class="reward-medal" role="img"
+                     aria-label="${streak > 0 ? `Medalha: ${this._formatStreak(streak)}` : 'Medalha de rotina completa'}">
+                    <span class="reward-medal-ribbon left"></span>
+                    <span class="reward-medal-ribbon right"></span>
+                    <span class="reward-medal-disc">
+                        ${streak > 0 ? html`
+                            <span class="reward-medal-number">${streak}</span>
+                        ` : html`
+                            <ha-icon icon="mdi:trophy"></ha-icon>
+                        `}
+                    </span>
+                </div>
+                <p class="reward-medal-streak">
+                    ${streak > 0 ? this._formatStreak(streak) : 'Rotina completa!'}
+                </p>
+                ${phrase ? html`
+                    <p class="reward-medal-phrase">${phrase}</p>
+                ` : html`
+                    <p class="reward-medal-phrase">Completaste tudo, ${child.name}. Parabéns!</p>
+                `}
+                ${best > 0 ? html`
+                    <p class="reward-medal-best">
+                        <ha-icon icon="mdi:trophy-outline"></ha-icon>
+                        <span>${isRecord ? `Novo recorde: ${this._formatStreak(best)}` : `Melhor série: ${this._formatStreak(best)}`}</span>
+                    </p>
+                ` : ''}
             </div>
         `;
     }
@@ -1817,6 +2257,23 @@ class MorningRoutineCard extends LitElement {
             width: 24px;
             height: 24px;
             --mdc-icon-size: 24px;
+        }
+
+        /* "Ver Recompensa" + "Jogos" side by side: natural width when there is room,
+           equal halves when the row is narrow */
+        .button-container.has-games { gap: 8px; }
+        .button-container.has-games .reward-button {
+            flex: 1 1 0;
+            min-width: 0;
+            max-width: max-content;
+            justify-content: center;
+        }
+        .button-container.has-games .reward-button ha-icon { flex: 0 0 auto; }
+        .button-container.has-games .reward-button span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .audio-button {
@@ -2472,6 +2929,140 @@ class MorningRoutineCard extends LitElement {
             font-size: 13px;
             font-style: italic;
         }
+
+        /* ------------------------------------------------------------------
+           Unified style (v2.10.0): one sober palette, flat surfaces.
+           green #a6da95 = done · yellow #eed49f = attention · red #ed8796 = late / destructive
+           Everything else follows the active Home Assistant theme.
+           ------------------------------------------------------------------ */
+        .global-timer { box-shadow: none; border-radius: 12px; color: #181926; font-size: 24px; font-weight: 600; }
+        .weather-section { background-color: var(--secondary-background-color); color: var(--primary-text-color); box-shadow: none; border-radius: 12px; }
+        .weather-section ha-icon { filter: none; }
+        .weather-temp, .weather-description { text-shadow: none; }
+        .weather-description { font-weight: 500; opacity: 1; color: var(--secondary-text-color); }
+        .announcement-button, .reward-button { border: 0; border-radius: 999px; background-color: var(--secondary-background-color); min-height: 44px; font-weight: 500; }
+        .reward-button { color: #181926; background-color: #eed49f; font-weight: 600; }
+        .reward-button.games-button { background-color: #8aadf4; }
+        .child-section { border: 0; border-radius: 16px; background: var(--secondary-background-color); padding: 14px; }
+        .child-section.error { border: 0; color: #ed8796; }
+        .child-header h2 { font-size: 18px; font-weight: 600; color: var(--primary-text-color); }
+        .history-button, .reset-button { border: 0 !important; background: var(--card-background-color) !important; }
+        .history-button ha-icon { color: var(--secondary-text-color); }
+        .reset-button ha-icon { color: #ed8796; }
+        .activity-item { border: 0; border-radius: 12px; background-color: var(--card-background-color); }
+        .activity-item.pending { color: var(--primary-text-color); }
+        .activity-item.pending .activity-icon { color: var(--secondary-text-color); }
+        .activity-item.completed { background-color: #a6da95; color: #181926; }
+        .activity-name { font-size: 14px; font-weight: 500; }
+        .activity-media-preview img { box-shadow: none; border-radius: 8px; }
+        .audio-play-button { background: var(--primary-color); color: #181926; }
+        .activity-item.completed .audio-play-button { background: #181926; color: #a6da95; }
+        .audio-player-container { border: 0; border-radius: 12px; background: var(--card-background-color); }
+        .audio-player-label { color: var(--primary-text-color); }
+        .reward-preview { background: var(--card-background-color); border-radius: 12px; }
+        .celebration { color: var(--primary-text-color); animation: none; }
+        .camera-modal, .reward-modal, .photo-modal, .confirm-modal, .history-modal { box-shadow: none; border-radius: 16px; }
+        .recording-indicator { background: var(--secondary-background-color); border-color: var(--divider-color); }
+        .recording-indicator:hover { box-shadow: none; }
+        .recording-indicator ha-icon { color: var(--secondary-text-color); }
+        .recording-indicator.recording { background: #ed8796; border-color: #ed8796; }
+        .recording-indicator.recording ha-icon { color: #181926; }
+        .reward-quote-container { background: #eed49f; border-radius: 16px; }
+        .reward-trophy, .reward-quote { color: #181926; text-shadow: none; }
+        .reward-trophy { animation: none; }
+        .photo-thumbnail, .photo-thumbnail:hover, .history-photo-container img { box-shadow: none; }
+        .confirm-modal-header h2, .confirm-warning { color: #ed8796; }
+        .history-photo-container, .history-audio-container { border: 0; background: var(--secondary-background-color); border-radius: 12px; }
+        .history-navigation { background: var(--secondary-background-color); border-radius: 12px; }
+        .transcription-box { border-left: 0; border-radius: 12px; background: var(--secondary-background-color); }
+
+        /* Stable dialog sizes (v2.10.1): the <dialog> shrink-wraps its content, so percentage widths
+           collapsed until the camera stream or the photo had loaded and then jumped. Size against the
+           viewport instead and reserve the media area up front. */
+        .history-modal { width: min(600px, 92vw); max-width: none; }
+        /* v2.11.2: wider camera dialog; the preview shows the whole camera frame (what the photo will contain), never a crop */
+        .camera-modal { width: min(900px, 94vw); max-width: none; max-height: 96vh; max-height: 96dvh; }
+        .confirm-modal { width: min(500px, 92vw); max-width: none; }
+        .reward-modal, .photo-modal { width: min(900px, 92vw); max-width: none; }
+        #camera-preview { display: block; aspect-ratio: 4 / 3; object-fit: contain; background: #000; max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); }
+        .audio-recorder-container { min-height: 280px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .photo-modal-content { min-height: min(60vh, 480px); box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+
+        /* ------------------------------------------------------------------
+           Reward from the photo (v2.11.0): generated image, waiting state, "medalha do dia", streak.
+           Same sober palette as the unified style; all motion stops with prefers-reduced-motion.
+           ------------------------------------------------------------------ */
+        .streak-chip { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 9px 0 6px; border-radius: 999px; background: var(--card-background-color); color: var(--primary-text-color); font-size: 14px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .streak-chip ha-icon { --mdc-icon-size: 16px; width: 16px; height: 16px; display: flex; color: #f5a97f; }
+
+                .photo-reward { color: var(--primary-text-color); }
+        .photo-reward .reward-modal-header h2 { font-size: 20px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+        .photo-reward-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: min(62vh, 460px); box-sizing: border-box; overflow: auto; }
+
+        .reward-image-button { position: relative; display: inline-flex; align-items: center; justify-content: center; max-width: 100%; padding: 0; margin: 0; border: 0; background: none; cursor: zoom-in; border-radius: 12px; font: inherit; color: inherit; }
+        .reward-image-button:focus-visible { outline: 3px solid var(--primary-color, #8aadf4); outline-offset: 3px; }
+        .reward-modal-content .reward-image { display: block; max-width: 100%; max-height: calc(90vh - 190px); width: auto; height: auto; object-fit: contain; border-radius: 12px; margin: 0; background: var(--secondary-background-color); }
+        .reward-image-zoom-hint { position: absolute; right: 8px; bottom: 8px; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(24, 25, 38, 0.6); color: #fff; --mdc-icon-size: 24px; pointer-events: none; }
+        .reward-caption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 12px; color: var(--primary-text-color); }
+        .reward-caption-name { font-size: 18px; font-weight: 600; }
+        .reward-caption-date { font-size: 15px; color: var(--secondary-text-color); }
+        .reward-caption-streak { display: inline-flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 500; align-self: center; }
+        .reward-caption-streak ha-icon { --mdc-icon-size: 18px; width: 18px; height: 18px; display: flex; color: #f5a97f; }
+
+        .reward-zoom { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.94); cursor: zoom-out; touch-action: pinch-zoom; }
+        .reward-zoom img { max-width: 100vw; max-height: 100vh; width: auto; height: auto; object-fit: contain; }
+        .reward-zoom:focus-visible { outline: 3px solid #fff; outline-offset: -3px; }
+        .reward-zoom-close { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); color: #fff; --mdc-icon-size: 24px; }
+
+        .reward-waiting { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 8px; max-width: 460px; }
+        .reward-waiting-art { position: relative; display: flex; align-items: center; justify-content: center; width: 112px; height: 112px; margin-bottom: 8px; color: var(--child-color, #8aadf4); --mdc-icon-size: 48px; }
+        .reward-waiting-art ha-icon { width: 48px; height: 48px; display: flex; }
+        .reward-waiting-ring { position: absolute; inset: 0; border-radius: 50%; border: 6px solid var(--secondary-background-color); border-top-color: var(--child-color, #8aadf4); animation: mr-spin 1.2s linear infinite; }
+        .reward-waiting-title { margin: 0; font-size: 24px; font-weight: 600; line-height: 1.25; color: var(--primary-text-color); }
+        .reward-waiting-text { margin: 0; font-size: 16px; line-height: 1.45; color: var(--secondary-text-color); }
+        @keyframes mr-spin { to { transform: rotate(360deg); } }
+
+        .reward-medal-card { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 28px 20px 24px; border-radius: 16px; background: var(--secondary-background-color); color: var(--primary-text-color); }
+        .reward-medal-kicker { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-text-color); }
+        .reward-medal { position: relative; width: 150px; height: 176px; margin: 4px 0; flex: none; }
+        .reward-medal-ribbon { position: absolute; top: 0; width: 34px; height: 84px; background: var(--child-color, #8aadf4); border-radius: 4px; }
+        .reward-medal-ribbon.left { left: 40px; transform: rotate(-20deg); transform-origin: bottom center; }
+        .reward-medal-ribbon.right { right: 40px; transform: rotate(20deg); transform-origin: bottom center; filter: brightness(0.85); }
+        .reward-medal-disc { position: absolute; left: 50%; bottom: 0; width: 124px; height: 124px; margin-left: -62px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #eed49f; border: 8px solid #e5c07b; color: #181926; --mdc-icon-size: 56px; animation: mr-medal-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+        .reward-medal-disc ha-icon { width: 56px; height: 56px; display: flex; }
+        .reward-medal-number { font-size: 60px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+        .reward-medal-streak { margin: 4px 0 0; font-size: 22px; font-weight: 600; }
+        .reward-medal-phrase { margin: 6px 0 0; max-width: 28ch; font-size: clamp(22px, 4.2vw, 30px); font-weight: 600; line-height: 1.25; text-wrap: balance; overflow-wrap: anywhere; }
+        .reward-medal-best { display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0; font-size: 15px; color: var(--secondary-text-color); }
+        .reward-medal-best ha-icon { --mdc-icon-size: 18px; width: 18px; height: 18px; display: flex; }
+        .reward-medal-card > p, .reward-medal { position: relative; z-index: 1; }
+        @keyframes mr-medal-in { from { transform: scale(0.6) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+        .reward-confetti { position: absolute; inset: 0; pointer-events: none; }
+        .confetti-piece { position: absolute; top: -16px; width: 9px; height: 15px; border-radius: 2px; opacity: 0.9; animation: mr-confetti 3.6s linear infinite; }
+        .confetti-piece.c0 { background: #a6da95; }
+        .confetti-piece.c1 { background: #eed49f; }
+        .confetti-piece.c2 { background: #ed8796; width: 10px; height: 10px; border-radius: 50%; }
+        .confetti-piece.c3 { background: #8aadf4; }
+        @keyframes mr-confetti {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(560px) rotate(540deg); }
+        }
+
+        @media (max-width: 480px) {
+            .photo-reward .reward-modal-header h2 { font-size: 18px; }
+            .reward-modal-content .reward-image { max-height: calc(90vh - 210px); }
+            .reward-medal-card { padding: 22px 14px 20px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reward-waiting-ring { animation: none; border-color: var(--child-color, #8aadf4); opacity: 0.35; }
+            .reward-medal-disc { animation: none; }
+            /* Confetti stays as a still decoration along the top edge */
+            .confetti-piece { animation: none; top: 10px; }
+            .confetti-piece:nth-child(odd) { top: 26px; transform: rotate(35deg); }
+            .confetti-piece:nth-child(3n) { transform: rotate(-25deg); }
+        }
     `;
 
     static getConfigElement() {
@@ -2511,7 +3102,7 @@ window.customCards.push({
 });
 
 console.info(
-    `%c MORNING-ROUTINE-CARD %c 2.8.16 - Show max daily temperature in weather section `,
+    `%c MORNING-ROUTINE-CARD %c ${CARD_VERSION} - Uncropped photo preview `,
     "color: white; font-weight: bold; background: #4CAF50",
     "color: white; font-weight: bold; background: #2196F3"
 );
