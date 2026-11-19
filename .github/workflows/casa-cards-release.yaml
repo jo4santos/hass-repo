@@ -1,0 +1,56 @@
+name: Casa Cards release
+
+# Creates the GitHub release `casa-cards-vX.Y.Z` when the version at the top of
+# dist/casa-cards.js changes. The Marketplace / HACS installs the cards from the
+# latest release of this repository, so: bump the version
+# (python3 scripts/build-casa-cards.py X.Y.Z), push, and the update shows up.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "dist/**"
+      - "hacs.json"
+      - ".github/workflows/casa-cards-release.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: casa-cards-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5.0.0
+
+      - name: Check that the entry point is up to date
+        run: |
+          set -euo pipefail
+          python3 scripts/build-casa-cards.py
+          if ! git diff --quiet -- dist/casa-cards.js; then
+            echo "::error::dist/casa-cards.js is stale: run python3 scripts/build-casa-cards.py and commit"
+            exit 1
+          fi
+
+      - name: Create the release if the version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(grep -oEm1 'casa-cards v[0-9]+\.[0-9]+\.[0-9]+' dist/casa-cards.js | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          tag="casa-cards-v${version}"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists"
+            echo "Release ${tag} already exists" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          notes=$(git log -1 --format='%B' -- dist hacs.json)
+          gh release create "${tag}" --target "${GITHUB_SHA}" --title "Casa Cards v${version}" --notes "${notes:-Casa Cards v${version}}" --latest
+          echo "Created ${tag}" >> "${GITHUB_STEP_SUMMARY}"

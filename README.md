@@ -31,7 +31,7 @@ Custom Home Assistant add-ons, integrations, Lovelace cards and themes. Each com
 
 The cards of the house dashboards (`casa-*-card`) live in [`dist/`](./dist), one file per card, and are installed straight from **this** repo: add `https://github.com/jo4santos/hass-repo` as a custom repository of type *Dashboard* (plugin). The only registered resource is `casa-cards.js`, which loads the other files with a content hash in the URL, so a browser only re-downloads the cards that changed.
 
-To publish a change: edit the card in `dist/`, run `python3 scripts/build-casa-cards.py X.Y.Z`, commit, push to `main` and create the release `casa-cards-vX.Y.Z`. Then update it in Home Assistant (Settings → Marketplace). A card that proves useful on its own can later be promoted to a dedicated repo like the ones below.
+To publish a change: edit the card in `dist/`, run `python3 scripts/build-casa-cards.py X.Y.Z`, commit and push to `main`; the `Casa Cards release` Action creates the release `casa-cards-vX.Y.Z` when the version changed. Then update it in Home Assistant (Settings → Marketplace). A card that proves useful on its own can later be promoted to a dedicated repo like the ones below.
 
 ## 🎨 Themes (HACS)
 
