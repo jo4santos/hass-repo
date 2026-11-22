@@ -1,4 +1,5 @@
-/* casa-announce-card v0.2.1 — anúncios de voz: destino (um de cada vez), anúncios rápidos (dois toques) e mensagem livre; envia para um script configurável; compact:true = versão para pop-up */
+/* casa-announce-card v0.3.0 — Gravar: grava a voz no telemóvel e anuncia a gravação (record:false desliga; só administradores, em HTTPS; o ficheiro vai para a pasta de media do HA e é apagado depois);
+   anúncios de voz: destino (um de cada vez), anúncios rápidos (dois toques) e mensagem livre; envia para um script configurável; compact:true = versão para pop-up */
 (() => {
 const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CSS = `
@@ -33,6 +34,11 @@ textarea::placeholder{color:var(--secondary-text-color);opacity:.8}
 .row{display:flex;align-items:center;gap:12px;min-height:44px}
 .cnt{font-size:12px;color:var(--secondary-text-color);font-variant-numeric:tabular-nums;margin-right:auto}
 .send{min-height:44px;min-width:132px;padding:0 20px;border-radius:999px;background:var(--primary-color);color:#181926;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;--mdc-icon-size:20px}
+.recb{min-height:44px;padding:0 16px;border-radius:999px;background:var(--card-background-color);font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;--mdc-icon-size:20px}
+.row[hidden],.recb[hidden]{display:none}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:#ed8796;animation:rp 1s ease-in-out infinite}
+.rt{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;margin-right:auto}
+@keyframes rp{50%{opacity:.25}}
 .foot{font-size:13px;line-height:1.4;color:var(--secondary-text-color);margin:0}
 @container (min-width:520px){.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
 @container (min-width:520px){.grid.pre{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
@@ -65,7 +71,7 @@ class CasaAnnounceCard extends HTMLElement {
   setConfig(c) {
     if (!c || !c.script) throw new Error('Defina "script" (ex.: script.notificar_audio)');
     if (!Array.isArray(c.destinations) || !c.destinations.length) throw new Error('Defina "destinations"');
-    this._c = Object.assign({ presets: [], confirm: true, message_field: 'message', target_field: 'target', max_length: 200, arm_seconds: 5, lock_seconds: 3, timeout_seconds: 20 }, c);
+    this._c = Object.assign({ presets: [], confirm: true, message_field: 'message', target_field: 'target', media_field: 'media_content_id', record: true, record_seconds: 30, record_dir: 'media-source://media_source/local', max_length: 200, arm_seconds: 5, lock_seconds: 3, timeout_seconds: 20 }, c);
     this._c.destinations = c.destinations.map((d) => Object.assign({}, d, { targets: Array.isArray(d.targets) ? d.targets : [] }));
     const all = [];
     this._c.destinations.forEach((d) => d.targets.forEach((t) => { if (all.indexOf(t) < 0) all.push(t); }));
@@ -77,7 +83,7 @@ class CasaAnnounceCard extends HTMLElement {
   getCardSize() { return 10; }
   getGridOptions() { return { columns: 'full', rows: 'auto' }; }
   connectedCallback() { clearInterval(this._tick); this._tick = setInterval(() => { if (this._h) this._update(); }, 20000); }
-  disconnectedCallback() { clearInterval(this._tick); clearTimeout(this._ta); this._arm = -1; }
+  disconnectedCallback() { clearInterval(this._tick); clearTimeout(this._ta); this._arm = -1; this._recStop(false); }
   set hass(h) { this._h = h; this._update(); }
   _hhmm() {
     const d = new Date();
@@ -114,7 +120,8 @@ class CasaAnnounceCard extends HTMLElement {
         ${c.presets.length ? `<section class="panel" aria-label="Anúncios rápidos"><div class="rn">Anúncios rápidos</div><div class="grid pre">${c.presets.map((p, i) => tile('pre', i, p)).join('')}</div></section>` : ''}
         <section class="panel" aria-label="Mensagem"><div class="rn">Mensagem</div>
           <textarea maxlength="${Number(c.max_length)}" placeholder="Escreva o que quer anunciar" aria-label="Mensagem a anunciar" enterkeyhint="enter"></textarea>
-          <div class="row"><span class="cnt"></span><button class="send" data-send="1"><ha-icon icon="mdi:bullhorn-outline"></ha-icon><span class="sl">Anunciar</span></button></div>
+          <div class="row norm"><span class="cnt"></span><button class="recb" data-rec="start" hidden><ha-icon icon="mdi:microphone"></ha-icon>Gravar</button><button class="send" data-send="1"><ha-icon icon="mdi:bullhorn-outline"></ha-icon><span class="sl">Anunciar</span></button></div>
+          <div class="row recrow" hidden><span class="dot"></span><span class="rt" role="timer"></span><button class="recb" data-rec="cancel">Cancelar</button><button class="send" data-rec="send"><ha-icon icon="mdi:bullhorn-outline"></ha-icon>Anunciar</button></div>
         </section>
       </div>
       <p class="foot">${c.compact ? '' : 'Um destino de cada vez. '}${c.presets.length ? (c.confirm ? 'Os anúncios rápidos pedem dois toques: o primeiro prepara, o segundo anuncia. ' : 'Os anúncios rápidos são enviados logo ao primeiro toque. ') : ''}A mensagem escrita só é enviada com o botão Anunciar.</p>
@@ -127,6 +134,9 @@ class CasaAnnounceCard extends HTMLElement {
       if (b.getAttribute('aria-disabled') === 'true') return;
       if (b.dataset.pre != null) return this._preset(Number(b.dataset.pre));
       if (b.dataset.send) return this._sendText();
+      if (b.dataset.rec === 'start') return this._recStart();
+      if (b.dataset.rec === 'cancel') return this._recStop(false);
+      if (b.dataset.rec === 'send') return this._recStop(true);
     });
     this._ta_el.addEventListener('input', () => this._sync());
     this._ta_el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); this._sendText(); } });
@@ -155,9 +165,70 @@ class CasaAnnounceCard extends HTMLElement {
     this._disarm(); this._send(m, 'text');
   }
   _blocked() { return !this._h.states[this._c.script] || this._dead(this._dest()); }
-  _send(message, src) {
-    const c = this._c, d = this._dest(), parts = c.script.split('.');
-    const data = { [c.message_field]: message };
+  /* ── gravação de voz: MediaRecorder → pasta de media do HA → o mesmo script, com media_content_id ── */
+  _canRec() { return this._c.record !== false && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) && !!(this._h.user && this._h.user.is_admin); }
+  async _recStart() {
+    if (this._rec || this._lock || this._blocked()) return;
+    this._disarm();
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+    catch (e) { this._status = { k: 'err', t: 'Sem acesso ao microfone' }; return this._sync(); }
+    const mime = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'].find((t) => MediaRecorder.isTypeSupported(t)) || '';
+    let mr;
+    try { mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+    catch (e) { stream.getTracks().forEach((t) => t.stop()); this._status = { k: 'err', t: 'Este aparelho não consegue gravar' }; return this._sync(); }
+    const r = (this._rec = { mr, stream, chunks: [], t0: Date.now(), send: false });
+    mr.ondataavailable = (e) => { if (e.data && e.data.size) r.chunks.push(e.data); };
+    mr.onstop = () => this._recDone(r);
+    mr.start();
+    r.iv = setInterval(() => { if (Date.now() - r.t0 >= this._c.record_seconds * 1000) this._recStop(true); else this._sync(); }, 250);
+    this._status = null; this._sync();
+  }
+  _recStop(send) {
+    const r = this._rec; if (!r || r.stopping) return;
+    r.stopping = true; r.send = send; clearInterval(r.iv);
+    try { r.mr.stop(); } catch (e) { this._recDone(r); }
+  }
+  _recDone(r) {
+    if (this._rec !== r) return;
+    this._rec = null; r.stream.getTracks().forEach((t) => t.stop());
+    if (!r.send) return this._sync();
+    const type = (r.mr.mimeType || 'audio/webm').split(';')[0];
+    const blob = new Blob(r.chunks, { type });
+    if (blob.size < 1200 || Date.now() - r.t0 < 700) { this._status = { k: 'err', t: 'Gravação demasiado curta' }; return this._sync(); }
+    this._upload(blob, 'anuncio-' + Date.now() + (type.indexOf('mp4') >= 0 ? '.m4a' : type.indexOf('ogg') >= 0 ? '.ogg' : '.webm'));
+  }
+  async _upload(blob, name) {
+    const c = this._c, d = this._dest();
+    this._lock = true; this._busy = 'rec'; this._status = { k: '', t: 'A enviar a gravação…' }; this._sync();
+    let id;
+    try {
+      const post = (dir) => { const fd = new FormData(); fd.append('media_content_id', dir); fd.append('file', new File([blob], name, { type: blob.type })); return this._h.fetchWithAuth('/api/media_source/local_source/upload', { method: 'POST', body: fd }); };
+      let res = await post(c.record_dir);
+      if (res.status === 400 || res.status === 404) res = await post(c.record_dir + '/.');
+      if (!res.ok) throw new Error(res.status === 401 || res.status === 403 ? 'só contas de administrador podem enviar gravações' : 'erro ' + res.status);
+      id = String((await res.json()).media_content_id || '').replace('/./', '/');
+      if (!id) throw new Error('resposta sem ficheiro');
+    } catch (e) {
+      this._lock = false; this._busy = null;
+      this._status = { k: 'err', t: 'Não foi possível enviar a gravação: ' + ((e && e.message) || 'erro desconhecido') };
+      return this._sync();
+    }
+    this._sendData({ [c.media_field]: id }, 'rec', d);
+    setTimeout(() => this._sweep(id), 120000);
+  }
+  /* apaga a gravação enviada e as antigas que tenham ficado para trás */
+  async _sweep(id) {
+    const rm = (m) => this._h.callWS({ type: 'media_source/local_source/remove', media_content_id: m }).catch(() => {});
+    await rm(id);
+    try {
+      const b = await this._h.callWS({ type: 'media_source/browse_media', media_content_id: this._c.record_dir });
+      (b.children || []).forEach((ch) => { const m = /^anuncio-(\d{13})\./.exec(ch.title || ''); if (m && ch.media_content_id !== id && Date.now() - Number(m[1]) > 600000) rm(ch.media_content_id); });
+    } catch (e) { /* sem acesso à pasta: fica por limpar */ }
+  }
+  _send(message, src) { this._sendData({ [this._c.message_field]: message }, src, this._dest(), message); }
+  _sendData(data, src, d, message) {
+    const c = this._c, parts = c.script.split('.');
     if (d.targets.length) data[c.target_field] = d.targets.slice();
     const id = (this._seq = (this._seq || 0) + 1);
     let settled = false, minDone = false;
@@ -202,6 +273,11 @@ class CasaAnnounceCard extends HTMLElement {
       b.setAttribute('aria-label', armed ? `${p.name}. Tocar outra vez para anunciar em ${d.name}` : p.name);
       b.title = p.message || '';
     });
+    const rec = this._rec, rb = R.querySelector('[data-rec="start"]');
+    R.querySelector('.norm').hidden = !!rec; R.querySelector('.recrow').hidden = !rec;
+    rb.hidden = !this._canRec(); rb.disabled = blocked;
+    if (this._lock && !blocked) rb.setAttribute('aria-disabled', 'true'); else rb.removeAttribute('aria-disabled');
+    if (rec) { const sec = Math.floor((Date.now() - rec.t0) / 1000), left = Math.max(0, c.record_seconds - sec); R.querySelector('.rt').textContent = '0:' + String(sec).padStart(2, '0') + (left <= 5 ? ' · faltam ' + left + ' s' : ''); }
     const n = this._ta_el.value.length, empty = !this._text(), sb = R.querySelector('.send');
     R.querySelector('.cnt').textContent = n + '/' + c.max_length;
     sb.disabled = blocked || empty;
@@ -210,6 +286,7 @@ class CasaAnnounceCard extends HTMLElement {
     const st = R.querySelector('.status');
     let s = this._status;
     if (noScript) s = { k: 'err', t: 'Script ' + c.script + ' não encontrado' };
+    else if (rec) s = { k: '', t: c.compact ? 'A gravar…' : 'A gravar para ' + d.name + '…' };
     else if (this._arm >= 0) s = { k: '', t: c.compact ? 'Tocar outra vez para anunciar' : `Tocar outra vez para anunciar em ${d.name}` };
     else if (dead && (c.compact || !s)) s = { k: c.compact ? 'err' : '', t: c.compact ? 'Sem ligação' : 'As colunas deste destino estão sem ligação' };
     else if (!s) s = { k: '', t: c.compact ? (restricted ? c.night.caption : '') : 'Escolha o destino e depois o anúncio' };
