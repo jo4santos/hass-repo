@@ -1,5 +1,21 @@
-/* casa-calls-card v0.9.0 — página Chamadas: o telefone (cartão voip-stack-card real, só emoldurado), Cozinha (Ligar num toque, Entrar em dois toques, Não incomodar); back = botões de voltar (tablets de parede); contacts = mosaicos grandes para chamar num toque; phone.state = faixa grande Atender/Rejeitar/Desligar; phone.dropin = entrada em curso (atende sozinho neste browser); phone.collapse = telefone original em «Mais opções»; phone.video = chamadas com vídeo (palco de vídeo durante a chamada, só os nossos botões); phone.camera = interruptor da câmara deste telefone; kitchen.volume = regulador do volume das chamadas; call_volume = nível mínimo do volume do tablet ao começar uma chamada (só com a interface JavaScript do Fully Kiosk; nunca baixa); ?atender=1 no endereço (vindo da notificação) = atende sozinho a chamada que estiver a tocar neste telefone e retira o parâmetro; video_quality = {width, height, fps, bitrate}: pede mais definição e débito à câmara deste telefone nas chamadas entre telefones da casa (só com o voip-stack v2026.11.0; noutra versão não faz nada); debug: true = linha pequena no palco com o tamanho e o ritmo da imagem recebida (↓) e enviada (↑); contacts[].group = título do grupo («Pessoas», «Divisões»): os mosaicos ficam agrupados, com um título pequeno por grupo, pela ordem em que os grupos aparecem (sem group fica a lista simples de sempre); com mais de 4 mosaicos passam a compactos (3 por linha em ecrãs estreitos, mais em ecrãs largos); contacts[].label = nome por extenso para as frases («quarto das crianças»); contacts[].peer = nome(s) do telefone tal como chega na chamada, quando é diferente de name e destination; primary = [contactos] = mosaicos grandes principais (destination pode ser um grupo de toque: «casa», «piso1», «rc»; caption = legenda quando há um só) e more = {label, title, contacts} = botão «Uma divisão…» que abre uma janela (em document.body, ancorada em cima, X, Esc ou toque fora fecham) com os restantes mosaicos: um toque liga e fecha; com primary/more a lista contacts é ignorada; ring_groups = {grupo: «para casa»} acrescenta o destino à frase de quem está a ligar, só quando o evento da chamada diz que o destino foi esse grupo */
+/* casa-calls-card v0.9.1 — página Chamadas: o telefone (cartão voip-stack-card real, só emoldurado), Cozinha (Ligar num toque, Entrar em dois toques, Não incomodar); back = botões de voltar (tablets de parede); contacts = mosaicos grandes para chamar num toque; phone.state = faixa grande Atender/Rejeitar/Desligar; phone.dropin = entrada em curso (atende sozinho neste browser); phone.collapse = telefone original em «Mais opções»; phone.video = chamadas com vídeo (palco de vídeo durante a chamada, só os nossos botões); phone.camera = interruptor da câmara deste telefone; kitchen.volume = regulador do volume das chamadas; call_volume = nível mínimo do volume do tablet ao começar uma chamada (só com a interface JavaScript do Fully Kiosk; nunca baixa); ?atender=1 no endereço (vindo da notificação) = atende sozinho a chamada que estiver a tocar neste telefone e retira o parâmetro; video_quality = {width, height, fps, bitrate}: pede mais definição e débito à câmara deste telefone nas chamadas entre telefones da casa (só com o voip-stack v2026.11.0; noutra versão não faz nada); debug: true = linha pequena no palco com o tamanho e o ritmo da imagem recebida (↓) e enviada (↑); contacts[].group = título do grupo («Pessoas», «Divisões»): os mosaicos ficam agrupados, com um título pequeno por grupo, pela ordem em que os grupos aparecem (sem group fica a lista simples de sempre); com mais de 4 mosaicos passam a compactos (3 por linha em ecrãs estreitos, mais em ecrãs largos); contacts[].label = nome por extenso para as frases («quarto das crianças»); contacts[].peer = nome(s) do telefone tal como chega na chamada, quando é diferente de name e destination; primary = [contactos] = mosaicos grandes principais (destination pode ser um grupo de toque: «casa», «piso1», «rc»; caption = legenda quando há um só) e more = {label, title, contacts} = botão «Uma divisão…» que abre uma janela (em document.body, ancorada em cima, X, Esc ou toque fora fecham) com os restantes mosaicos: um toque liga e fecha; com primary/more a lista contacts é ignorada; ring_groups = {grupo: «para casa»} acrescenta o destino à frase de quem está a ligar, só quando o evento da chamada diz que o destino foi esse grupo */
 (() => {
+/* câmara da frente por omissão: em tablets com duas câmaras (Surface) o browser escolhe a de trás; aqui pede-se a da frente (ideal, nunca falha) sempre que o pedido não escolhe câmara */
+try {
+  const md = navigator.mediaDevices;
+  if (md && typeof md.getUserMedia === 'function' && !md.__casaFront) {
+    const gum = md.getUserMedia.bind(md); md.__casaFront = true;
+    md.getUserMedia = (c) => {
+      try {
+        if (globalThis.__casaFrontOff !== true && c && c.video) {
+          const v = c.video === true ? {} : c.video;
+          if (typeof v === 'object' && v.facingMode == null && v.deviceId == null) c = Object.assign({}, c, { video: Object.assign({}, v, { facingMode: { ideal: 'user' } }) });
+        }
+      } catch (e) { /* fica o pedido original */ }
+      return gum(c);
+    };
+  }
+} catch (e) { /* nada */ }
 const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ST = { offline: 'Sem ligação', unavailable: 'Sem ligação', idle: 'Livre', ringing: 'A tocar', remote_ringing: 'A chamar', calling: 'A ligar', connecting: 'A ligar', in_call: 'Em chamada', held: 'Em espera', terminating: 'A terminar' };
 const OUT = ['calling', 'remote_ringing', 'connecting'], TALK = ['in_call', 'held'];
@@ -147,7 +163,8 @@ ha-icon{--mdc-icon-size:20px;flex:none;display:inline-flex}
 .vt.von{background:#cad3f5;color:#181926}
 /* a tua imagem (como numa videochamada): canto do palco, espelhada; toca para mudar de canto */
 .pipb{display:none}
-.clip.vid .pipb:not([hidden]){display:block;position:absolute;z-index:4;width:28%;max-height:46%;right:8px;bottom:8px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 2px rgba(202,211,245,.55);background:#000;line-height:0}
+.clip.vid .pipb:not([hidden]){display:block;position:absolute;z-index:4;width:28%;aspect-ratio:var(--ar,4/3);right:8px;bottom:8px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 2px rgba(202,211,245,.55);background:#000;line-height:0}
+.clip.vid .pipb.port:not([hidden]){width:auto;height:52%}
 .clip.vid .pipb.c1{right:auto;left:8px}
 .clip.vid .pipb.c2{right:auto;left:8px;bottom:auto;top:8px}
 .pipb video{width:100%;height:100%;display:block;object-fit:cover;transform:scaleX(-1)}
@@ -490,6 +507,8 @@ class CasaCallsCard extends HTMLElement {
       v._k = key;
       try { v.srcObject = st ? new MediaStream(st.getVideoTracks()) : null; if (st) { const pl = v.play(); if (pl && pl.catch) pl.catch(() => {}); } } catch (e) { console.debug('casa-calls-card: pré-visualização', e); }
     }
+    if (!v._ar) { v._ar = () => { const w = v.videoWidth, h = v.videoHeight; if (w > 0 && h > 0) { b.style.setProperty('--ar', w + '/' + h); b.classList.toggle('port', h > w); } }; v.addEventListener('loadedmetadata', v._ar); v.addEventListener('resize', v._ar); }
+    v._ar();
     b.hidden = !st;
     return !!st;
   }
