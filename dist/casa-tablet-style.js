@@ -1,4 +1,4 @@
-// casa-tablet-style v0.6.0 — CSS partilhado dos cartões de tablet de parede (casa-room-card, casa-floor-card, casa-launcher-card); ação Anunciar na navegação, bloco Família do piso
+// casa-tablet-style v0.6.1 — CSS partilhado dos cartões de tablet de parede (casa-room-card, casa-floor-card, casa-launcher-card); ação Anunciar na navegação, bloco Família do piso
 window.__casaTablet = window.__casaTablet || {};
 window.__casaTablet.CSS = `
 :host{display:block}
@@ -162,7 +162,7 @@ h2{min-width:0}
 .hd{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"dl dl" "h1 clk";align-items:end;gap:4px 12px;height:auto;min-height:66px}
 .hd .dl{grid-area:dl;margin:0;min-width:0}
 .hd h1{grid-area:h1;min-width:0;font-size:24px;font-size:clamp(20px,6.2cqi,34px);line-height:1.12;overflow-wrap:break-word}
-.clk{grid-area:clk;font-size:44px;font-size:clamp(40px,12cqi,64px)}
+.clk{grid-area:clk;font-size:58px;font-size:clamp(52px,15cqi,88px);font-weight:400}
 .date{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .per{flex:none}
 .chips,.acc{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
