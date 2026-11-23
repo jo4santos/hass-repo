@@ -1,4 +1,4 @@
-/* casa-music-card v0.9.2 — abrir um artista mostra os álbuns (o Spotify não devolve músicas soltas do artista) e cada álbum abre a partir daí; corrige a janela (linhas e mosaicos esmagados com listas longas), Para ti em português e resumido, altura fixa em ecrãs largos; janela em leitor completo: capa, favorito, progresso, controlos e volume, com separadores A seguir, Para ti, Parecidas, Biblioteca, Pesquisar e DJ (pedido por texto, DJ automático, locutor); locutor entre músicas (AI Radio DJ do Music Assistant) escolhido na janela Gerir fila; janela Gerir fila com separador Pesquisar (mesma pesquisa do cartão); volume com escala não linear (metade da barra = 0–20%) e botões − e + de 1%; separador Fila mostra a lista (tocar numa música toca-a) e o botão Gerir abre a janela: tocar, tocar a seguir, remover, ordenar, baralhar/repetir, continuar com parecidas, transição suave, saltar segundos e músicas parecidas (mass_queue 0.11); cartão de música da casa (grupo permanente, Music Assistant); shortcuts[].card = cartão aberto dentro deste, como um separador ({leader} = coluna líder), em vez de navegar; progresso e durações, separador Fila e abrir álbuns/playlists/artistas na pesquisa (mass_queue) */
+/* casa-music-card v0.9.3 — divisão com o amplificador Bluetooth desligado mostra «Sem amplificador» (e não «A tocar») e sai da lista de onde se ouve; abrir um artista mostra os álbuns (o Spotify não devolve músicas soltas do artista) e cada álbum abre a partir daí; corrige a janela (linhas e mosaicos esmagados com listas longas), Para ti em português e resumido, altura fixa em ecrãs largos; janela em leitor completo: capa, favorito, progresso, controlos e volume, com separadores A seguir, Para ti, Parecidas, Biblioteca, Pesquisar e DJ (pedido por texto, DJ automático, locutor); locutor entre músicas (AI Radio DJ do Music Assistant) escolhido na janela Gerir fila; janela Gerir fila com separador Pesquisar (mesma pesquisa do cartão); volume com escala não linear (metade da barra = 0–20%) e botões − e + de 1%; separador Fila mostra a lista (tocar numa música toca-a) e o botão Gerir abre a janela: tocar, tocar a seguir, remover, ordenar, baralhar/repetir, continuar com parecidas, transição suave, saltar segundos e músicas parecidas (mass_queue 0.11); cartão de música da casa (grupo permanente, Music Assistant); shortcuts[].card = cartão aberto dentro deste, como um separador ({leader} = coluna líder), em vez de navegar; progresso e durações, separador Fila e abrir álbuns/playlists/artistas na pesquisa (mass_queue) */
 const IC = {
   play: 'M8 5v14l11-7z', pause: 'M6 5h4v14H6zM14 5h4v14h-4z', prev: 'M6 6h2v12H6zM9.5 12 18 6v12z', next: 'M16 6h2v12h-2zM6 6l8.5 6L6 18z',
   stop: 'M6 6h12v12H6z', vol: 'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z',
@@ -350,9 +350,11 @@ class CasaMusicCard extends HTMLElement {
     const vol = s ? Number(s.attributes.volume_level || 0) : 0;
     const on = !off && !apart && vol > 0;
     const bt = r.bt ? this._h.states[r.bt] : null, pi = r.pi ? this._h.states[r.pi] : null;
+    /* amp Bluetooth fora (bt = off): o media_player diz "playing" na mesma, mas o snapclient toca para o HDMI da RPi — não há som */
+    const noAmp = !off && !!bt && bt.state === 'off';
     const run = (e) => !!e && !!this._h.states[e] && this._h.states[e].state === 'on';
     const btBusy = run(r.bt_on) ? 'A ligar Bluetooth…' : run(r.bt_off) ? 'A desligar Bluetooth…' : '';
-    return { off, apart, on, vol, btOk: !!bt && bt.state !== 'unavailable', btOn: !!bt && bt.state === 'on', btBusy, piOk: !!pi && pi.state !== 'unavailable', piOn: !!pi && pi.state === 'on', label: off ? 'Sem ligação' : apart ? 'À parte' : on ? 'A tocar' : '' };
+    return { off, apart, on, noAmp, audible: on && !noAmp, vol, btOk: !!bt && bt.state !== 'unavailable', btOn: !!bt && bt.state === 'on', btBusy, piOk: !!pi && pi.state !== 'unavailable', piOn: !!pi && pi.state === 'on', label: off ? 'Sem ligação' : noAmp ? 'Sem amplificador' : apart ? 'À parte' : on ? 'A tocar' : '' };
   }
   _render() {
     const h = this._h, c = this._c; if (!h || !c) return;
@@ -365,8 +367,8 @@ class CasaMusicCard extends HTMLElement {
     const sub = pend ? 'Pode demorar alguns segundos' : hasMedia ? [a.media_artist, a.media_album_name].filter(Boolean).join(' · ') : '';
     const volS = h.states[c.volume], vol = volS ? Math.round(Number(volS.state) || 0) : 0;
     const rooms = c.rooms.map((r) => Object.assign({}, r, this._room(r)));
-    const onRooms = rooms.filter((r) => r.on);
-    const where = onRooms.length === rooms.length ? 'Casa toda' : onRooms.length ? onRooms.map((r) => r.name).join(', ') : 'Nenhuma divisão';
+    const onRooms = rooms.filter((r) => r.audible), noAmp = rooms.filter((r) => r.on && r.noAmp);
+    const where = (onRooms.length === rooms.length ? 'Casa toda' : onRooms.length ? onRooms.map((r) => r.name).join(', ') : 'Nenhuma divisão') + (noAmp.length ? ' · sem amplificador: ' + noAmp.map((r) => r.name).join(', ') : '');
     const dur = hasMedia ? Number(a.media_duration) || 0 : 0, cid0 = String(a.media_content_id || ''), onAir = hasMedia && !dur && cid0.indexOf('://radio/') >= 0 && cid0.indexOf('/api/tts_proxy/') < 0;
     const canSeek = dur > 0 && (Number(a.supported_features) & 2) === 2, pos = dur ? this._pos(L) : 0, pct = (dur ? (pos / dur) * 100 : 0).toFixed(2);
     const pg = `<div class="pg${dur ? '' : onAir ? ' live' : ' off'}"><span class="pt" data-pe="1">${dur ? fmt(pos) : ''}</span><div class="pb"${dur && !canSeek ? ` role="progressbar" aria-label="Posição" aria-valuemin="0" aria-valuemax="${Math.round(dur)}" aria-valuenow="${Math.round(pos)}"` : ''}><div class="tr"><div class="fl" style="width:${pct}%"></div></div>${canSeek ? `<span class="kn" style="left:${pct}%"></span><input type="range" min="0" max="${Math.round(dur)}" step="${dur > 300 ? 5 : 1}" value="${Math.round(pos)}" data-seek="1" aria-label="Posição" aria-valuetext="${fmt(pos)} de ${fmt(dur)}">` : ''}</div><span class="pt r">${dur ? fmt(dur) : onAir ? 'Em direto' : ''}</span></div>`;
@@ -386,7 +388,7 @@ class CasaMusicCard extends HTMLElement {
     const st = (e) => !!e && !!h.states[e] && h.states[e].state === 'on';
     let panel = '';
     if (this._tab === 'rooms') {
-      panel = rooms.map((r, i) => `<div class="room${r.on ? ' on' : ''}">
+      panel = rooms.map((r, i) => `<div class="room${r.on ? ' on' : ''}${r.noAmp ? ' noamp' : ''}">
         <button class="rmain" data-toggle="${i}" ${r.off ? 'disabled' : ''} aria-pressed="${r.on}"><span class="rn">${esc(r.name)}</span><span class="rs">${[r.label, r.btOn ? 'Bluetooth' : ''].filter(Boolean).join(' · ')}</span></button>
         <button class="ib" data-more="${i}" aria-label="Opções de ${esc(r.name)}" aria-expanded="${this._open === i}">${svg(IC.dots, 20)}</button>
         ${this._open === i ? `<div class="opts">
@@ -459,7 +461,8 @@ class CasaMusicCard extends HTMLElement {
       .panel{display:flex;flex-direction:column;gap:8px}
       .room,.res{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:12px;background:var(--secondary-background-color)}
       .room.on{background:var(--primary-text-color);color:var(--card-background-color)}
-      .room.on .rs{color:inherit;opacity:.75}.room.on .ib{background:rgba(0,0,0,.12)}
+      .room.on .rs{color:inherit;opacity:.75}
+.room.noamp .rs{color:var(--error-color);opacity:1;font-weight:600}.room.on .ib{background:rgba(0,0,0,.12)}
       .rmain{flex:1;min-width:0;min-height:44px;display:flex;flex-direction:column;justify-content:center;gap:2px;text-align:left}
       .rs:empty,.s:empty{display:none}ha-card.full{border:0;border-radius:16px}.rn,.rs,.t,.s,.w{line-height:1.3}.rn{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rs{font-size:13px;color:var(--secondary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .res .ib,.room .ib{width:44px;height:44px;background:var(--card-background-color)}.room.on .ib,.res.cur .ib{background:rgba(0,0,0,.12)}.res button.rmain{border-radius:8px}
