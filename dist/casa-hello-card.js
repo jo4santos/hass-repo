@@ -1,4 +1,4 @@
-/* casa-hello-card v0.3.0 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
+/* casa-hello-card v0.3.1 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
    «vai chover?» (guarda-chuva), «frio ou calor?» (o que vestir) e o dia em três partes (manhã, tarde, noite). Depois das 19h fala de amanhã.
    Configuração: weather (weather.*); names (texto antes da data); link = { icon, name, path } botão para outra página (opcional);
    cold / cool / hot = limites em °C da máxima (12 / 18 / 25). */
@@ -96,9 +96,9 @@ class CasaHelloCard extends HTMLElement {
 .ta{display:flex;flex-direction:column;line-height:1.15;white-space:nowrap}
 .ta b{font-size:22px;font-weight:800}
 .ta span{font-size:14px;font-weight:700;opacity:.75}
-.ps{display:flex;gap:14px;padding:6px 16px;border-radius:22px;background:rgba(255,255,255,.4)}
+.ps{display:flex;gap:16px;padding:8px 18px;border-radius:22px;background:rgba(255,255,255,.4)}
 .pt{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:800;line-height:1.15}
-.pe{font-size:30px;line-height:1.1;font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif}
+.pe{font-size:28px;line-height:1.35;font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif}
 .pt b{font-size:15px}
 .lk{flex:none;width:64px;height:64px;border:0;border-radius:50%;background:rgba(255,255,255,.4);color:inherit;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
 .n .lk{background:rgba(255,255,255,.12)}
