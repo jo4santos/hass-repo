@@ -1,4 +1,4 @@
-/* casa-hello-card v0.3.1 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
+/* casa-hello-card v0.3.2 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
    «vai chover?» (guarda-chuva), «frio ou calor?» (o que vestir) e o dia em três partes (manhã, tarde, noite). Depois das 19h fala de amanhã.
    Configuração: weather (weather.*); names (texto antes da data); link = { icon, name, path } botão para outra página (opcional);
    cold / cool / hot = limites em °C da máxima (12 / 18 / 25). */
@@ -68,7 +68,7 @@ class CasaHelloCard extends HTMLElement {
     const wx = rt || tt || parts.length ? `<div class="wx"><span class="cap">${tom ? 'Amanhã' : 'Hoje'}</span><div class="row">${rt ? tile(rt, rt.c) : ''}${tt ? tile(tt, '') : ''}${parts.length ? `<div class="ps">${parts.map((x) => `<div class="pt"><span>${x.n}</span><span class="pe">${x.e}</span><b>${esc(x.t)}</b></div>`).join('')}</div>` : ''}</div></div>` : '';
     this.shadowRoot.innerHTML = `<style>
 :host{display:block}
-.b{position:relative;overflow:hidden;display:flex;align-items:center;gap:20px;padding:14px 24px;border-radius:28px;color:#181926;container-type:inline-size;min-height:132px;box-sizing:border-box}
+.b{position:relative;overflow:hidden;display:flex;align-items:center;gap:20px;padding:10px 24px;border-radius:28px;color:#181926;container-type:inline-size;min-height:120px;box-sizing:border-box}
 .b>*{position:relative;z-index:1}
 .b.m{background:linear-gradient(120deg,#f5a97f,#eed49f)}
 .b.d{background:linear-gradient(120deg,#8aadf4,#91d7e3)}
