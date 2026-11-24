@@ -1,4 +1,4 @@
-/* casa-kids-agenda-card v0.3.0 — agenda das crianças: uma coluna por criança, só com os eventos dela (hoje e amanhã), em grande e só para ver.
+/* casa-kids-agenda-card v0.3.1 (days: 1 = só hoje) — agenda das crianças: uma coluna por criança, só com os eventos dela (hoje e amanhã), em grande e só para ver.
    Os eventos são de quem está no prefixo do título («L - Flauta», «LD: Taekwondo»); os outros não aparecem.
    Configuração: calendars = [calendar.*]; kids = [{ key: 'D', name, color }]; refresh_minutes (5). */
 (() => {
@@ -58,7 +58,7 @@ class CasaKidsAgendaCard extends HTMLElement {
     const cols = c.kids.map((k) => {
       const col = esc(k.color || '#8aadf4');
       const day = (lb, html) => `<div class="day"><span class="lb">${lb}</span><div class="chips">${html}</div></div>`;
-      const body = this._ev ? day('Hoje', ((rs) => list(rs, rs.done ? 'Por hoje já está!' : 'Dia livre!'))(this._rows(k, tk, now, true))) + day('Amanhã', list(this._rows(k, mk, now, false), 'Nada marcado')) : day('Hoje', '<div class="free">A carregar…</div>');
+      const body = this._ev ? day('Hoje', ((rs) => list(rs, rs.done ? 'Por hoje já está!' : 'Dia livre!'))(this._rows(k, tk, now, true))) + (Number(c.days) === 1 ? '' : day('Amanhã', list(this._rows(k, mk, now, false), 'Nada marcado'))) : day('Hoje', '<div class="free">A carregar…</div>');
       return `<section style="--k:${col}" aria-label="${esc(k.name || k.key)}"><span class="av" title="${esc(k.name || k.key)}">${esc(String(k.name || k.key || '?').charAt(0))}</span><div class="days">${body}</div></section>`;
     }).join('');
     this.shadowRoot.innerHTML = `<style>

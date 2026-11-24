@@ -174,6 +174,7 @@ const fmLeave = (() => {
   };
   return { state, html, css, arm, stop, sync };
 })();
+window.__casaLeave = fmLeave; /* usado pelo casa-leave-card */
 class CasaFamilyCard extends HTMLElement {
   constructor() { super(); this.attachShadow({ mode: 'open' }); this._sig = ''; this._gest(); }
   setConfig(c) {
