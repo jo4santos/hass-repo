@@ -1,6 +1,7 @@
-/* casa-hello-card v0.3.3 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
+/* casa-hello-card v0.4.0 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
    «vai chover?» (guarda-chuva), «frio ou calor?» (o que vestir) e o dia em três partes (manhã, tarde, noite). Depois das 19h fala de amanhã.
    Configuração: weather (weather.*); names (texto antes da data); link = { icon, name, path } botão para outra página (opcional);
+   menu = [{ name, icon, path } | { name, icon, action: 'reload' | 'fullscreen' }] faz do botão um menu (em vez de link); menu_icon;
    cold / cool / hot = limites em °C da máxima (12 / 18 / 25). */
 (() => {
 const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -16,7 +17,7 @@ class CasaHelloCard extends HTMLElement {
   getGridOptions() { return { columns: 'full', rows: 'auto' }; }
   set hass(h) { this._h = h; this._sub(); this._render(); }
   connectedCallback() { if (!this._t) this._t = setInterval(() => this._render(), 10000); this._sub(); this._render(); }
-  disconnectedCallback() { clearInterval(this._t); this._t = null; for (const k of Object.keys(this._unsub)) { const p = this._unsub[k]; delete this._unsub[k]; Promise.resolve(p).then((u) => { if (typeof u === 'function') u(); }).catch(() => {}); } }
+  disconnectedCallback() { this._menu(false); clearInterval(this._t); this._t = null; for (const k of Object.keys(this._unsub)) { const p = this._unsub[k]; delete this._unsub[k]; Promise.resolve(p).then((u) => { if (typeof u === 'function') u(); }).catch(() => {}); } }
   _sub() {
     const h = this._h, c = this._c; if (!h || !c || !c.weather || !h.connection || !this.isConnected) return;
     for (const t of ['hourly', 'daily']) {
@@ -26,6 +27,26 @@ class CasaHelloCard extends HTMLElement {
     }
   }
   _go(path) { history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
+  /* menu do botão: lista por baixo do botão, por cima de tudo (fixed, fora da faixa que corta o que sai) */
+  _menu(open) {
+    const old = this.shadowRoot.querySelector('.mn'); if (old) old.remove();
+    if (this._mclose) { document.removeEventListener('click', this._mclose, true); window.removeEventListener('scroll', this._mclose, true); this._mclose = null; }
+    this._mo = !!open; const b = this.shadowRoot.querySelector('.lk'); if (b) b.setAttribute('aria-expanded', String(this._mo));
+    if (!open || !b) return;
+    const r = b.getBoundingClientRect(), m = document.createElement('div'); m.className = 'mn'; m.setAttribute('role', 'menu');
+    m.style.top = Math.round(r.bottom + 8) + 'px'; m.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+    m.innerHTML = this._c.menu.map((x, i) => `<button type="button" role="menuitem" data-i="${i}"><ha-icon icon="${esc(x.icon || 'mdi:circle-small')}"></ha-icon><span>${esc(x.name || '')}</span></button>`).join('');
+    m.addEventListener('click', (e) => { const t = e.target.closest('button'); if (!t) return; e.stopPropagation(); const x = this._c.menu[Number(t.dataset.i)]; this._menu(false); this._act(x); });
+    this.shadowRoot.appendChild(m);
+    this._mclose = (e) => { if (e.type === 'click' && e.composedPath().indexOf(m) >= 0) return; this._menu(false); };
+    setTimeout(() => { if (this._mclose) { document.addEventListener('click', this._mclose, true); window.addEventListener('scroll', this._mclose, true); } }, 0);
+  }
+  _act(x) {
+    if (!x) return;
+    if (x.action === 'reload') { location.reload(); return; }
+    if (x.action === 'fullscreen') { const d = document; if (d.fullscreenElement) d.exitFullscreen(); else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {}); return; }
+    if (x.path) this._go(x.path);
+  }
   _wet(f) { return RAIN.indexOf(f.condition) >= 0 || Number(f.precipitation_probability) >= 50 || Number(f.precipitation) >= 0.5; }
   _render() {
     const h = this._h, c = this._c; if (!h || !c) return;
@@ -59,7 +80,7 @@ class CasaHelloCard extends HTMLElement {
     const fut = 'Vai';
     const rt = rain == null ? null : rain ? { e: '☔', a: fut + ' chover', b: 'Leva guarda-chuva', c: 'wet' } : { e: '🌂', a: 'Não chove', b: 'Sem guarda-chuva', c: '' };
     const tt = max == null ? null : max < c.cold ? { e: '🧣', a: 'Frio', b: 'Casaco quente' } : max < c.cool ? { e: '🧥', a: 'Fresco', b: 'Leva casaco' } : max < c.hot ? { e: '👕', a: 'Bom', b: 'Sem casaco' } : { e: '🩳', a: 'Calor', b: 'Roupa fresca' };
-    const L = c.link && c.link.path ? c.link : null;
+    const M = Array.isArray(c.menu) && c.menu.length ? c.menu : null, L = M ? { name: c.menu_name || 'Menu', icon: c.menu_icon || 'mdi:menu' } : (c.link && c.link.path ? c.link : null);
     const sig = [p.k, clock, date, st, this._fv || 0, tom ? 1 : 0, JSON.stringify(parts), rt && rt.a, tt && tt.a, max].join('|'); if (sig === this._sig) return; this._sig = sig;
     const sky = (kind !== 'clear' ? '<i class="kc kc1"></i><i class="kc kc2"></i><i class="kc kc3"></i>' : '')
       + (kind === 'rain' ? Array.from({ length: 14 }, (x, i) => `<i class="kd" style="left:${4 + i * 7}%;animation-delay:-${(i * 0.37) % 1.6}s"></i>`).join('') : '')
@@ -104,6 +125,11 @@ class CasaHelloCard extends HTMLElement {
 .n .lk{background:rgba(255,255,255,.12)}
 .lk ha-icon{--mdc-icon-size:30px}
 .ck{flex:none;font-size:92px;line-height:.9;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+[aria-expanded="true"].lk{background:#fff;color:#181926}
+.mn{position:fixed;z-index:20;min-width:230px;padding:8px;border-radius:22px;background:var(--card-background-color,#24273a);color:var(--primary-text-color,#cad3f5);box-shadow:0 12px 36px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:4px}
+.mn button{display:flex;align-items:center;gap:14px;min-height:56px;padding:0 18px 0 14px;border:0;border-radius:16px;background:none;color:inherit;font:inherit;font-size:18px;font-weight:700;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mn button:active{background:var(--secondary-background-color,#1e2030)}
+.mn ha-icon{--mdc-icon-size:26px;color:var(--secondary-text-color,#a5adcb)}
 @keyframes bob{0%,100%{transform:translateY(-2px) rotate(-6deg)}50%{transform:translateY(2px) rotate(6deg)}}
 @keyframes tw{0%,100%{opacity:.25}50%{opacity:1}}
 @keyframes drift{to{transform:translateX(160cqi)}}
@@ -114,7 +140,8 @@ class CasaHelloCard extends HTMLElement {
 @container (max-width:820px){.wx{display:none}.ck{font-size:76px}}
 @container (max-width:520px){.hi{font-size:26px}.dt{font-size:15px}.ck{font-size:56px}.b{padding:14px 16px;gap:12px;min-height:0}.lk{width:52px;height:52px}}
 </style><div class="b ${p.k}"><div class="sky">${sky}</div><div class="tx"><span class="hi">${esc(p.hi)}</span><span class="dt">${esc(c.names ? c.names + ' · ' + date : date)}</span></div>${wx}${L ? `<button class="lk" type="button" aria-label="${esc(L.name || 'Abrir')}"><ha-icon icon="${esc(L.icon || 'mdi:home-outline')}"></ha-icon></button>` : ''}<span class="ck">${clock}</span></div>`;
-    const b = this.shadowRoot.querySelector('.lk'); if (b) b.addEventListener('click', () => this._go(L.path));
+    const b = this.shadowRoot.querySelector('.lk'); if (b) { if (M) { b.setAttribute('aria-haspopup', 'menu'); b.addEventListener('click', (e) => { e.stopPropagation(); this._menu(!this._mo); }); } else b.addEventListener('click', () => this._go(L.path)); }
+    if (this._mo) this._menu(true);
   }
 }
 if (!customElements.get('casa-hello-card')) customElements.define('casa-hello-card', CasaHelloCard);
