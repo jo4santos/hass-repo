@@ -1,4 +1,4 @@
-/* casa-kids-agenda-card v0.1.0 — agenda das crianças: uma coluna por criança, só com os eventos dela (hoje e amanhã), em grande e só para ver.
+/* casa-kids-agenda-card v0.2.0 — agenda das crianças: uma coluna por criança, só com os eventos dela (hoje e amanhã), em grande e só para ver.
    Os eventos são de quem está no prefixo do título («L - Flauta», «LD: Taekwondo»); os outros não aparecem.
    Configuração: calendars = [calendar.*]; kids = [{ key: 'D', name, color }]; refresh_minutes (5). */
 (() => {
@@ -46,9 +46,9 @@ class CasaKidsAgendaCard extends HTMLElement {
     for (const e of this._ev || []) {
       if (e.who.indexOf(key) < 0) continue;
       if (e.allDay) { if (!(e.s <= dayKey && dayKey < e.e)) continue; out.push({ ord: '0', time: 'Todo o dia', title: e.title, past: false, on: false }); }
-      else { if (this._day(e.s) !== dayKey) continue; out.push({ ord: '1' + this._hm(e.s), time: this._hm(e.s), title: e.title, past: today && e.e <= now, on: today && e.s <= now && e.e > now }); }
+      else { if (this._day(e.s) !== dayKey) continue; out.push({ ord: '1' + this._hm(e.s), time: this._hm(e.s), title: e.title, past: false, gone: today && e.e <= now, on: today && e.s <= now && e.e > now }); }
     }
-    return out.sort((a, b) => (a.ord < b.ord ? -1 : a.ord > b.ord ? 1 : 0));
+    const left = out.filter((r) => !r.gone); left.done = out.length - left.length; return left.sort((a, b) => (a.ord < b.ord ? -1 : a.ord > b.ord ? 1 : 0));
   }
   _render() {
     const c = this._c; if (!c || !this._h) return;
@@ -57,28 +57,28 @@ class CasaKidsAgendaCard extends HTMLElement {
     const list = (rows, empty) => (rows.length ? rows.map((r) => `<div class="r${r.past ? ' past' : ''}${r.on ? ' on' : ''}"><span class="ic"><ha-icon icon="${icon(r.title)}"></ha-icon></span><span class="tt"><b>${esc(r.title)}</b><span>${r.on ? 'Agora · ' : ''}${esc(r.time)}</span></span>${r.past ? '<ha-icon class="ok" icon="mdi:check"></ha-icon>' : ''}</div>`).join('') : `<div class="free"><ha-icon icon="mdi:emoticon-happy-outline"></ha-icon>${empty}</div>`);
     const cols = c.kids.map((k) => {
       const col = esc(k.color || '#8aadf4');
-      return `<section style="--k:${col}"><header><span class="av">${esc(String(k.name || k.key || '?').charAt(0))}</span><h2>${esc(k.name || k.key)}</h2></header><h3>Hoje</h3>${this._ev ? list(this._rows(k, tk, now, true), 'Dia livre!') : '<div class="free">A carregar…</div>'}<h3>Amanhã</h3>${this._ev ? list(this._rows(k, mk, now, false), 'Nada marcado') : ''}</section>`;
+      return `<section style="--k:${col}"><header><span class="av">${esc(String(k.name || k.key || '?').charAt(0))}</span><h2>${esc(k.name || k.key)}</h2></header><h3>Hoje</h3>${this._ev ? ((rs) => list(rs, rs.done ? 'Por hoje já está!' : 'Dia livre!'))(this._rows(k, tk, now, true)) : '<div class="free">A carregar…</div>'}<h3>Amanhã</h3>${this._ev ? list(this._rows(k, mk, now, false), 'Nada marcado') : ''}</section>`;
     }).join('');
     this.shadowRoot.innerHTML = `<style>
 :host{display:block}
 .g{display:grid;grid-template-columns:repeat(${c.kids.length},minmax(0,1fr));gap:16px;container-type:inline-size}
 @container (max-width:560px){.g{grid-template-columns:1fr}}
-section{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:28px;background:var(--card-background-color,#24273a);border-top:8px solid var(--k);color:var(--primary-text-color);min-width:0}
+section{display:flex;flex-direction:column;gap:8px;padding:14px 16px 16px;border-radius:28px;background:var(--card-background-color,#24273a);border-top:8px solid var(--k);color:var(--primary-text-color);min-width:0}
 header{display:flex;align-items:center;gap:12px}
-.av{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--k);color:#181926;font-size:26px;font-weight:800}
-h2{margin:0;font-size:28px;font-weight:800;letter-spacing:-.01em}
-h3{margin:8px 0 0;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--secondary-text-color)}
-.r{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 12px;border-radius:18px;background:var(--secondary-background-color,#1e2030)}
+.av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--k);color:#181926;font-size:22px;font-weight:800}
+h2{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em}
+h3{margin:4px 0 0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--secondary-text-color)}
+.r{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 12px;border-radius:18px;background:var(--secondary-background-color,#1e2030)}
 .r.on{background:var(--k);color:#181926}
 .r.past{opacity:.45}
-.ic{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 22%,transparent);color:var(--k)}
+.ic{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 22%,transparent);color:var(--k)}
 .r.on .ic{background:rgba(255,255,255,.4);color:#181926}
-.ic ha-icon{--mdc-icon-size:26px}
+.ic ha-icon{--mdc-icon-size:22px}
 .tt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
-.tt b{font-size:19px;font-weight:700;overflow-wrap:anywhere}
-.tt span{font-size:15px;font-weight:600;opacity:.75;font-variant-numeric:tabular-nums}
+.tt b{font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.tt span{font-size:14px;font-weight:600;opacity:.75;font-variant-numeric:tabular-nums}
 .ok{flex:none;--mdc-icon-size:22px}
-.free{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 12px;border-radius:18px;font-size:17px;font-weight:600;color:var(--secondary-text-color);border:2px dashed color-mix(in srgb,var(--k) 40%,transparent)}
+.free{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:18px;font-size:17px;font-weight:600;color:var(--secondary-text-color);border:2px dashed color-mix(in srgb,var(--k) 40%,transparent)}
 .err{margin:8px 0 0;font-size:14px;color:var(--secondary-text-color)}
 </style><div class="g">${cols}</div>${this._err ? '<p class="err">Sem ligação à agenda.</p>' : ''}`;
   }
