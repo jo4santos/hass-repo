@@ -1,4 +1,4 @@
-/* casa-kids-agenda-card v0.3.2 (days: 1 = só hoje) — agenda das crianças: uma coluna por criança, só com os eventos dela (hoje e amanhã), em grande e só para ver.
+/* casa-kids-agenda-card v0.3.3 (days: 1 = só hoje) — agenda das crianças: uma coluna por criança, só com os eventos dela (hoje e amanhã), em grande e só para ver.
    Os eventos são de quem está no prefixo do título («L - Flauta», «LD: Taekwondo»); os outros não aparecem.
    Configuração: calendars = [calendar.*]; kids = [{ key: 'D', name, color }]; refresh_minutes (5). */
 (() => {
@@ -63,7 +63,7 @@ class CasaKidsAgendaCard extends HTMLElement {
     }).join('');
     this.shadowRoot.innerHTML = `<style>
 :host{display:block}
-.g{display:flex;flex-direction:column;gap:12px;container-type:inline-size}
+.g{display:flex;flex-direction:column;gap:var(--ha-section-grid-row-gap,8px);container-type:inline-size}
 section{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--ha-card-border-radius,12px);background:var(--card-background-color,#24273a);border:var(--ha-card-border-width,1px) solid var(--ha-card-border-color,var(--divider-color,rgba(128,128,128,.2)));box-sizing:border-box;color:var(--primary-text-color);min-width:0}
 .av{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--k);color:#181926;font-size:28px;font-weight:800}
 .days{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}

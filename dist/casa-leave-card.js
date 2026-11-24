@@ -1,4 +1,4 @@
-/* casa-leave-card v0.2.1 — o relógio «falta quanto para sair» do cartão Família, sozinho e baixo (mesmo bloco: usa o do casa-family-card).
+/* casa-leave-card v0.2.2 — o relógio «falta quanto para sair» do cartão Família, sozinho e baixo (mesmo bloco: usa o do casa-family-card).
    Configuração: leave = { time: '08:50', label: 'escola', warn, hurry, grace, days, from } (igual ao casa-family-card);
    button = { name, icon, service: 'dominio.servico', data } botão na mesma linha (opcional). Fora da janela mostra só a hora de saída. */
 (() => {
@@ -27,7 +27,7 @@ class CasaLeaveCard extends HTMLElement {
   _render() {
     const L = this._L, s = this._state(), b = this._c.button;
     this.shadowRoot.innerHTML = `<style>:host{display:block}${L.css}
-.w{display:flex;align-items:stretch;gap:12px}
+.w{display:flex;align-items:stretch;gap:var(--ha-section-grid-column-gap,8px)}
 .lv{--lvd:60px;--lvn:38px;flex:1;height:auto;min-height:84px;border-radius:var(--ha-card-border-radius,12px);padding:10px 18px;gap:16px}
 .lvt{flex-direction:row;align-items:baseline;justify-content:flex-start;gap:14px}
 .lvs{font-size:17px}
