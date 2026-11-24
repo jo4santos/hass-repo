@@ -1,4 +1,4 @@
-/* casa-leave-card v0.2.0 — o relógio «falta quanto para sair» do cartão Família, sozinho e baixo (mesmo bloco: usa o do casa-family-card).
+/* casa-leave-card v0.2.1 — o relógio «falta quanto para sair» do cartão Família, sozinho e baixo (mesmo bloco: usa o do casa-family-card).
    Configuração: leave = { time: '08:50', label: 'escola', warn, hurry, grace, days, from } (igual ao casa-family-card);
    button = { name, icon, service: 'dominio.servico', data } botão na mesma linha (opcional). Fora da janela mostra só a hora de saída. */
 (() => {
@@ -28,12 +28,12 @@ class CasaLeaveCard extends HTMLElement {
     const L = this._L, s = this._state(), b = this._c.button;
     this.shadowRoot.innerHTML = `<style>:host{display:block}${L.css}
 .w{display:flex;align-items:stretch;gap:12px}
-.lv{--lvd:60px;--lvn:38px;flex:1;height:auto;min-height:84px;border-radius:24px;padding:10px 18px;gap:16px}
+.lv{--lvd:60px;--lvn:38px;flex:1;height:auto;min-height:84px;border-radius:var(--ha-card-border-radius,12px);padding:10px 18px;gap:16px}
 .lvt{flex-direction:row;align-items:baseline;justify-content:flex-start;gap:14px}
 .lvs{font-size:17px}
-.off{flex:1;display:flex;align-items:center;gap:12px;min-height:84px;box-sizing:border-box;padding:10px 18px;border-radius:24px;background:var(--card-background-color,#24273a);color:var(--secondary-text-color);font-size:18px;font-weight:700}
+.off{flex:1;display:flex;align-items:center;gap:12px;min-height:84px;box-sizing:border-box;padding:10px 18px;border-radius:var(--ha-card-border-radius,12px);border:var(--ha-card-border-width,1px) solid var(--ha-card-border-color,var(--divider-color,rgba(128,128,128,.2)));background:var(--card-background-color,#24273a);color:var(--secondary-text-color);font-size:18px;font-weight:700}
 .off ha-icon{--mdc-icon-size:32px}
-.bt{flex:none;display:inline-flex;align-items:center;gap:10px;min-height:84px;padding:0 26px;border:0;border-radius:24px;background:var(--card-background-color,#24273a);color:var(--primary-text-color);font:inherit;font-size:18px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bt{flex:none;display:inline-flex;align-items:center;gap:10px;min-height:84px;padding:0 26px;border:var(--ha-card-border-width,1px) solid var(--ha-card-border-color,var(--divider-color,rgba(128,128,128,.2)));border-radius:var(--ha-card-border-radius,12px);box-sizing:border-box;background:var(--card-background-color,#24273a);color:var(--primary-text-color);font:inherit;font-size:18px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .bt ha-icon{--mdc-icon-size:28px}
 .bt.busy{opacity:.5}
 @container (max-width:1px){.bt span{display:none}}</style><div class="w">${s ? L.html(s) : `<div class="off"><ha-icon icon="mdi:clock-outline"></ha-icon><span>Saída às ${esc(this._c.leave.time)}</span></div>`}${b && b.service ? `<button class="bt" type="button"><ha-icon icon="${esc(b.icon || 'mdi:bullhorn-outline')}"></ha-icon><span>${esc(b.name || 'Anunciar')}</span></button>` : ''}</div>`;
