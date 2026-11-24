@@ -1,4 +1,4 @@
-/* casa-hello-card v0.4.1 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
+/* casa-hello-card v0.4.2 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
    «vai chover?» (guarda-chuva), «frio ou calor?» (o que vestir) e o dia em três partes (manhã, tarde, noite). Depois das 19h fala de amanhã.
    Configuração: weather (weather.*); names (texto antes da data); link = { icon, name, path } botão para outra página (opcional);
    menu = [{ name, icon, path } | { name, icon, action: 'reload' | 'fullscreen' }] (reload com kiosk: true recarrega com ?kiosk) faz do botão um menu (em vez de link); menu_icon;
@@ -86,7 +86,7 @@ class CasaHelloCard extends HTMLElement {
       + (kind === 'rain' ? Array.from({ length: 14 }, (x, i) => `<i class="kd" style="left:${4 + i * 7}%;animation-delay:-${(i * 0.37) % 1.6}s"></i>`).join('') : '')
       + (p.k === 'n' ? Array.from({ length: 16 }, (x, i) => `<i class="ks" style="left:${(i * 53) % 97}%;top:${(i * 37) % 80 + 6}%;animation-delay:-${(i * 0.7) % 3}s"></i>`).join('') : '');
     const tile = (x, cls) => `<div class="tl ${cls || ''}"><span class="em">${x.e}</span><span class="ta"><b>${esc(x.a)}</b><span>${esc(x.b)}</span></span></div>`;
-    const wx = rt || tt || parts.length ? `<div class="wx"><span class="cap">${tom ? 'Amanhã' : 'Hoje'}</span><div class="row">${rt ? tile(rt, rt.c) : ''}${tt ? tile(tt, '') : ''}${parts.length ? `<div class="ps">${parts.map((x) => `<div class="pt"><span>${x.n}</span><span class="pe">${x.e}</span><b>${esc(x.t)}</b></div>`).join('')}</div>` : ''}</div></div>` : '';
+    const wx = rt || tt || parts.length ? `<div class="wx">${tom ? '<span class="cap">Amanhã</span>' : ''}<div class="row">${rt ? tile(rt, rt.c) : ''}${tt ? tile(tt, '') : ''}${parts.length ? `<div class="ps">${parts.map((x) => `<div class="pt"><span>${x.n}</span><span class="pe">${x.e}</span><b>${esc(x.t)}</b></div>`).join('')}</div>` : ''}</div></div>` : '';
     this.shadowRoot.innerHTML = `<style>
 :host{display:block}
 .b{position:relative;overflow:hidden;display:flex;align-items:center;gap:20px;padding:10px 24px;border-radius:28px;color:#181926;container-type:inline-size;min-height:120px;box-sizing:border-box}
