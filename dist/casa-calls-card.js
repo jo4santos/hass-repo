@@ -365,7 +365,7 @@ class CasaCallsCard extends HTMLElement {
     this._sync();
   }
   _drop() { this._gen++; this._mounting = false; if (this._phone) { this._phone.remove(); this._phone = null; } }
-  _go(path) { history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
+  _go(path) { /* mantém ?kiosk ao mudar de página */ const q = location.search; if (q && /[?&](kiosk|hide_header|hide_sidebar)\b/.test(q) && String(path).charAt(0) === '/' && String(path).indexOf('?') < 0) { const h = String(path).indexOf('#'); path = h < 0 ? path + q : path.slice(0, h) + q + path.slice(h); } history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
   _disarm() { clearTimeout(this._armT); this._arm = false; }
   _dndOn() { const s = this._s(this._k && this._k.dnd); return !!s && s.state === 'on'; }
   _call() {

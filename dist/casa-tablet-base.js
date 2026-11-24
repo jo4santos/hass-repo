@@ -62,7 +62,7 @@ _on(e) { const s = this._s(e); return !!s && ['on', 'open', 'opening', 'playing'
 _bad(e) { const s = this._s(e); return !s || s.state === 'unavailable' || s.state === 'unknown'; }
 _svc(ds, data, ent) { const p = ds.split('.'); return this._h.callService(p[0], p[1], data || {}, ent ? { entity_id: ent } : undefined); }
 _run(list) { (list || []).forEach((a) => { const p = a.service.split('.'); this._h.callService(p[0], p[1], a.data || {}, a.target); }); }
-_go(path) { history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
+_go(path) { /* mantém ?kiosk ao mudar de página */ const q = location.search; if (q && /[?&](kiosk|hide_header|hide_sidebar)\b/.test(q) && String(path).charAt(0) === '/' && String(path).indexOf('?') < 0) { const h = String(path).indexOf('#'); path = h < 0 ? path + q : path.slice(0, h) + q + path.slice(h); } history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
 _leader() { const c = this._c && this._c.sound; if (!c || !this._h) return null; const s = this._s(c.leader_sensor || 'sensor.grupo_ativo_leader'); return s && s.state.startsWith('media_player.') ? s.state : (c.speakers && c.speakers[0] ? c.speakers[0].entity : null); }
 _perOn(name) { const c = this._c, p = c.period && !this._bad(c.period) ? this._s(c.period) : null; if (!p) return false; const n = String(name || '').toLowerCase(); return n === String(p.state).toLowerCase() || n === String((c.period_labels || {})[p.state] || '').toLowerCase(); }
 _armed(k) { return this._arm === k; }

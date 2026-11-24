@@ -1,7 +1,7 @@
-/* casa-hello-card v0.4.0 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
+/* casa-hello-card v0.4.1 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
    «vai chover?» (guarda-chuva), «frio ou calor?» (o que vestir) e o dia em três partes (manhã, tarde, noite). Depois das 19h fala de amanhã.
    Configuração: weather (weather.*); names (texto antes da data); link = { icon, name, path } botão para outra página (opcional);
-   menu = [{ name, icon, path } | { name, icon, action: 'reload' | 'fullscreen' }] faz do botão um menu (em vez de link); menu_icon;
+   menu = [{ name, icon, path } | { name, icon, action: 'reload' | 'fullscreen' }] (reload com kiosk: true recarrega com ?kiosk) faz do botão um menu (em vez de link); menu_icon;
    cold / cool / hot = limites em °C da máxima (12 / 18 / 25). */
 (() => {
 const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -26,7 +26,7 @@ class CasaHelloCard extends HTMLElement {
       Promise.resolve(this._unsub[t]).catch(() => { delete this._unsub[t]; });
     }
   }
-  _go(path) { history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
+  _go(path) { /* mantém ?kiosk ao mudar de página */ const q = location.search; if (q && /[?&](kiosk|hide_header|hide_sidebar)\b/.test(q) && String(path).charAt(0) === '/' && String(path).indexOf('?') < 0) { const h = String(path).indexOf('#'); path = h < 0 ? path + q : path.slice(0, h) + q + path.slice(h); } history.pushState(null, '', path); window.dispatchEvent(new CustomEvent('location-changed', { bubbles: true, composed: true })); }
   /* menu do botão: lista por baixo do botão, por cima de tudo (fixed, fora da faixa que corta o que sai) */
   _menu(open) {
     const old = this.shadowRoot.querySelector('.mn'); if (old) old.remove();
@@ -43,7 +43,7 @@ class CasaHelloCard extends HTMLElement {
   }
   _act(x) {
     if (!x) return;
-    if (x.action === 'reload') { location.reload(); return; }
+    if (x.action === 'reload') { if (x.kiosk && !/[?&]kiosk\b/.test(location.search)) location.replace(location.pathname + (location.search ? location.search + '&kiosk' : '?kiosk') + location.hash); else location.reload(); return; }
     if (x.action === 'fullscreen') { const d = document; if (d.fullscreenElement) d.exitFullscreen(); else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {}); return; }
     if (x.path) this._go(x.path);
   }
