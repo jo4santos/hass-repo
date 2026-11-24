@@ -1,4 +1,4 @@
-/* casa-hello-card v0.3.2 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
+/* casa-hello-card v0.3.3 — cabeçalho do painel das crianças, feito para quem ainda não lê números: saudação, data e relógio grande, e o tempo em desenhos:
    «vai chover?» (guarda-chuva), «frio ou calor?» (o que vestir) e o dia em três partes (manhã, tarde, noite). Depois das 19h fala de amanhã.
    Configuração: weather (weather.*); names (texto antes da data); link = { icon, name, path } botão para outra página (opcional);
    cold / cool / hot = limites em °C da máxima (12 / 18 / 25). */
@@ -56,14 +56,14 @@ class CasaHelloCard extends HTMLElement {
     if (win.length) { rain = win.some((x) => this._wet(x.f)); max = Math.max.apply(null, win.map((x) => Number(x.f.temperature)).filter((v) => !isNaN(v))); if (!isFinite(max)) max = null; }
     else if (dayf) { rain = this._wet(dayf); max = dayf.temperature == null ? null : Number(dayf.temperature); }
     if (max == null && ok && !tom && w.attributes.temperature != null) max = Number(w.attributes.temperature);
-    const fut = tom ? 'Vai' : (hr < 12 ? 'Vai' : 'Ainda vai');
+    const fut = 'Vai';
     const rt = rain == null ? null : rain ? { e: '☔', a: fut + ' chover', b: 'Leva guarda-chuva', c: 'wet' } : { e: '🌂', a: 'Não chove', b: 'Sem guarda-chuva', c: '' };
     const tt = max == null ? null : max < c.cold ? { e: '🧣', a: 'Frio', b: 'Casaco quente' } : max < c.cool ? { e: '🧥', a: 'Fresco', b: 'Leva casaco' } : max < c.hot ? { e: '👕', a: 'Bom', b: 'Sem casaco' } : { e: '🩳', a: 'Calor', b: 'Roupa fresca' };
     const L = c.link && c.link.path ? c.link : null;
     const sig = [p.k, clock, date, st, this._fv || 0, tom ? 1 : 0, JSON.stringify(parts), rt && rt.a, tt && tt.a, max].join('|'); if (sig === this._sig) return; this._sig = sig;
-    const sky = (kind !== 'clear' ? '<i class="c c1"></i><i class="c c2"></i><i class="c c3"></i>' : '')
-      + (kind === 'rain' ? Array.from({ length: 14 }, (x, i) => `<i class="d" style="left:${4 + i * 7}%;animation-delay:-${(i * 0.37) % 1.6}s"></i>`).join('') : '')
-      + (p.k === 'n' ? Array.from({ length: 16 }, (x, i) => `<i class="s" style="left:${(i * 53) % 97}%;top:${(i * 37) % 80 + 6}%;animation-delay:-${(i * 0.7) % 3}s"></i>`).join('') : '');
+    const sky = (kind !== 'clear' ? '<i class="kc kc1"></i><i class="kc kc2"></i><i class="kc kc3"></i>' : '')
+      + (kind === 'rain' ? Array.from({ length: 14 }, (x, i) => `<i class="kd" style="left:${4 + i * 7}%;animation-delay:-${(i * 0.37) % 1.6}s"></i>`).join('') : '')
+      + (p.k === 'n' ? Array.from({ length: 16 }, (x, i) => `<i class="ks" style="left:${(i * 53) % 97}%;top:${(i * 37) % 80 + 6}%;animation-delay:-${(i * 0.7) % 3}s"></i>`).join('') : '');
     const tile = (x, cls) => `<div class="tl ${cls || ''}"><span class="em">${x.e}</span><span class="ta"><b>${esc(x.a)}</b><span>${esc(x.b)}</span></span></div>`;
     const wx = rt || tt || parts.length ? `<div class="wx"><span class="cap">${tom ? 'Amanhã' : 'Hoje'}</span><div class="row">${rt ? tile(rt, rt.c) : ''}${tt ? tile(tt, '') : ''}${parts.length ? `<div class="ps">${parts.map((x) => `<div class="pt"><span>${x.n}</span><span class="pe">${x.e}</span><b>${esc(x.t)}</b></div>`).join('')}</div>` : ''}</div></div>` : '';
     this.shadowRoot.innerHTML = `<style>
@@ -75,15 +75,15 @@ class CasaHelloCard extends HTMLElement {
 .b.e{background:linear-gradient(120deg,#c6a0f6,#f5bde6)}
 .b.n{background:linear-gradient(120deg,#363a4f,#5b6078);color:#cad3f5}
 .sky{position:absolute;inset:0;z-index:0;pointer-events:none}
-.c{position:absolute;width:220px;height:70px;border-radius:999px;background:rgba(255,255,255,.28);filter:blur(2px);animation:drift 60s linear infinite}
-.c::before{content:"";position:absolute;left:44px;top:-34px;width:110px;height:90px;border-radius:50%;background:inherit}
-.n .c{background:rgba(255,255,255,.1)}
-.c1{top:14%;left:-20%}.c2{top:52%;left:-20%;animation-duration:85s;animation-delay:-30s;transform:scale(.7)}.c3{top:26%;left:-20%;animation-duration:110s;animation-delay:-70s;transform:scale(1.2)}
-.d{position:absolute;top:-12%;width:3px;height:18px;border-radius:3px;background:rgba(255,255,255,.55);animation:fall 1.6s linear infinite}
-.s{position:absolute;width:4px;height:4px;border-radius:50%;background:#fff;animation:tw 3s ease-in-out infinite}
+.kc{position:absolute;width:220px;height:70px;border-radius:999px;background:rgba(255,255,255,.28);filter:blur(2px);animation:drift 60s linear infinite}
+.kc::before{content:"";position:absolute;left:44px;top:-34px;width:110px;height:90px;border-radius:50%;background:inherit}
+.n .kc{background:rgba(255,255,255,.1)}
+.kc1{top:14%;left:-20%}.kc2{top:52%;left:-20%;animation-duration:85s;animation-delay:-30s;transform:scale(.7)}.kc3{top:26%;left:-20%;animation-duration:110s;animation-delay:-70s;transform:scale(1.2)}
+.kd{position:absolute;top:-12%;width:3px;height:18px;border-radius:3px;background:rgba(255,255,255,.55);animation:fall 1.6s linear infinite}
+.ks{position:absolute;width:4px;height:4px;border-radius:50%;background:#fff;animation:tw 3s ease-in-out infinite}
 .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.hi{font-size:38px;line-height:1.05;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
-.dt{font-size:17px;font-weight:600;opacity:.8}
+.hi{font-size:38px;line-height:1.1;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt{font-size:17px;font-weight:600;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dt::first-letter{text-transform:uppercase}
 .wx{flex:none;display:flex;flex-direction:column;gap:4px}
 .cap{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.7;padding-left:6px}
